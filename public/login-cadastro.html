@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowTech | Cadastrar</title>
+  <link rel="stylesheet" href="./css/login-cadastro.css">
+</head>
+
+<body class="min-h-screen bg-green950" onload="alterarFuncao()">
+
+  <div class="flex flex-col lg:flex-row min-h-screen">
+    <div class="panel-bg relative flex-1 lg:flex-[56] px-6 sm:px-10 lg:px-14 py-10 lg:py-12 flex flex-col overflow-hidden">
+      <a href="index.html" class="back-btn relative z-10">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Voltar
+      </a>
+
+      <div class="mt-10 lg:mt-14 max-w-md relative z-10">
+        <h1 class="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white mb-4">O monitoramento dos
+          seus pórticos, sob controle total.</h1>
+        <span class="block text-[15px] leading-relaxed text-[#a9c2bc]">Acesse a central do mantenedor e acompanhe a
+          saúde de cada pórtico Free Flow em tempo real, com alertas antes que a operação seja afetada.</span>
+      </div>
+
+      <div class="flex-1 min-h-16"></div>
+
+      <div class="relative z-10 grid grid-cols-2 gap-3">
+
+        <div class="bg-green700 border border-[#3a8f86] rounded-xl px-4 py-3.5">
+          <div class="text-[10.5px] uppercase tracking-wide text-[#8fada6] font-semibold mb-1.5">Pórticos monitorados
+          </div>
+          <div class="text-xl text-white leading-none">70</div>
+          <div class="text-[11px] text-[#a9c2bc] mt-1.5">distribuídos em 12 rodovias</div>
+        </div>
+
+        <div class="bg-green700 border border-[#3a8f86] rounded-xl px-4 py-3.5">
+          <div class="text-[10.5px] uppercase tracking-wide text-[#8fada6] font-semibold mb-1.5">Falhas evitadas</div>
+          <div class="text-xl text-white leading-none">18</div>
+          <div class="text-[11px] text-[#a9c2bc] mt-1.5">neste mês, via alertas antecipados</div>
+        </div>
+
+        <div class="bg-green700 border border-[#3a8f86] rounded-xl px-4 py-3.5">
+          <div class="text-[10.5px] uppercase tracking-wide text-[#8fada6] font-semibold mb-1.5">Disponibilidade</div>
+          <div class="text-xl text-white leading-none">99.8%</div>
+          <div class="text-[11px] text-[#a9c2bc] mt-1.5">uptime garantido da rede</div>
+        </div>
+
+        <div class="bg-green700 border border-[#3a8f86] rounded-xl px-4 py-3.5">
+          <div class="text-[10.5px] uppercase tracking-wide text-[#8fada6] font-semibold mb-1.5">Tempo de resposta</div>
+          <div class="text-xl text-white leading-none">4 min</div>
+          <div class="text-[11px] text-[#a9c2bc] mt-1.5">tempo médio até o alerta</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 lg:flex-[44] bg-white flex items-center justify-center px-6 sm:px-8 py-12 lg:py-10">
+      <div class="w-full max-w-[392px]">
+        <div class="flex items-center gap-2 font-extrabold text-[16px] text-slate-900 mb-9">FlowTech</div>
+
+        <div id="div_acao"></div>
+      </div>
+    </div>
+  </div>
+</body>
+
+
+<div ></div>
+
+
+</html>
+
+<script>
+  let tipoTela = true;
+
+  let divCadastro = `
+            <div class="mb-6">
+          <h2 class="text-[23px] font-extrabold tracking-tight mb-1.5">Crie sua conta</h2>
+          <span class="block text-[13.5px] text-slate-500">Cadastre-se para acompanhar a saúde dos seus pórticos Free
+            Flow.</span>
+        </div>
+
+        <div class="flex gap-7 border-b border-lineGray mb-7">
+          <a onclick="alterarFuncao()" class="pb-3.5 text-[14.5px] font-bold text-slate-400 no-underline" style="cursor: pointer;">Entrar</a>
+          <span class="pb-3.5 text-[14.5px] font-bold text-slate-900 border-b-2 border-green700 -mb-px">Cadastrar</span>
+        </div>
+
+        <form onsubmit="return false" class="flex flex-col gap-4">
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">Nome completo</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21v-1a8 8 0 0 1 16 0v1" />
+              </svg>
+              <input id="cadNome" type="text" placeholder="Seu nome completo"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">E-mail</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              <input id="cadEmail" type="email" placeholder="seuemail@email.com"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">Senha</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <input id="cadSenha" type="password" placeholder="Mínimo 8 caracteres"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">Codigo</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <input id="cadCodigo" type="password" placeholder="Mínimo 8 caracteres"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <button type="submit"
+            class="mt-1.5 w-full bg-green700 hover:bg-green600 text-white rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px" onclick="cadastro()">
+            Criar conta
+            <svg class="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M19 8v6M22 11h-6" />
+            </svg>
+          </button>
+
+          <div class="text-center text-[13px] text-slate-500 mt-2">Já tem conta? <a href="login.html" class="font-bold text-green700 hover:underline">Entrar</a>
+          </div>
+        </form>
+    `
+
+    let divLogin = `
+        <div class="mb-6">
+          <h2 class="text-[23px] font-extrabold tracking-tight mb-1.5">Bem-vindo(a) de volta!</h2>
+          <span class="block text-[13.5px] text-slate-500">Acesse sua conta para monitorar seus pórticos.</span>
+        </div>
+
+        <div class="flex gap-7 border-b border-lineGray mb-7">
+          <span class="pb-3.5 text-[14.5px] font-bold text-slate-900 border-b-2 border-green700 -mb-px">Entrar</span>
+          <a onclick="alterarFuncao()"
+            class="pb-3.5 text-[14.5px] font-bold text-slate-400 no-underline" style="cursor: pointer;">Cadastrar</a>
+        </div>
+
+        <form onsubmit="return false" class="flex flex-col gap-4">
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">E-mail</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              <input id="loginEmail" type="email" placeholder="seuemail@email.com"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <div>
+            <span class="block text-[12.5px] font-bold text-slate-900 mb-1.5">Senha</span>
+            <div class="relative flex items-center">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <input id="loginSenha" type="password" placeholder="••••••••"
+                class="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <div class="flex justify-end text-[12.5px] -mt-1">
+            <span class="text-slate-400 font-bold cursor-default select-none">Esqueceu a senha?</span>
+          </div>
+
+          <button type="button"
+            class="mt-1.5 w-full bg-green700 hover:bg-green600 text-white rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px" onclick="login()">
+            Entrar
+            <svg class="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <div class="text-center text-[13px] text-slate-500 mt-2">
+            Não tem conta? <a href="flowtech-cadastro.html"
+              class="font-bold text-green700 hover:underline">Cadastre-se</a>
+          </div>
+        </form>
+    `
+
+  function alterarFuncao() {
+    if (tipoTela == true) {
+      div_acao.innerHTML = divLogin;
+      tipoTela = false;
+    } else if (tipoTela == false) {
+      div_acao.innerHTML = divCadastro;
+      tipoTela = true;
+    }
+  }
+</script>]
+<script src="js/auth.js"></script>
