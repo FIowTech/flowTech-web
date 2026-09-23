@@ -1,9 +1,10 @@
+
 export function Navbar() {
   const navitems = [
     { text: "Nossa Missão" , href: "index.html#nossa_missao"},
-    { text: "Nossa Solução" , href: "index.html#nossa_missao"},
-    { text: "Recursos" , href: "index.html#nossa_missao"},
-    { text: "Contato" , href: "index.html#nossa_missao"},
+    { text: "Nossa Solução" , href: "index.html#nossa_solucao"},
+    { text: "Recursos" , href: "index.html#recuros"},
+    { text: "Contato" , href: "index.html#contato"},
   ];
   return (
 
@@ -12,18 +13,16 @@ export function Navbar() {
       <h1 className="text-2xl font-bold">FlowTech</h1>
     </span>
 
-
-
-
-    <nav class="flex flex-wrap justify-center gap-1 text-sm sm:gap-3 lg:gap-5">
+    <nav className="flex flex-wrap justify-center gap-1 text-sm sm:gap-3 lg:gap-5">
       {navitems.map((item) => (
-        <NavItem href={item.href} text={item.text}/>
+        <NavItem key={item.href} href={item.href} text={item.text}/>
       ))}
     <a href="login-cadastro.html" className="bg-green-500 rounded px-3 py-2 transition duration-150 ease-in-out hover:bg-gray-100 sm:px-4">
       Entrar
     </a>
     </nav>
   </header>
+ 
     
   );
 }
@@ -35,6 +34,7 @@ function NavItem({ href, text}){
     className="rounded px-3 py-2 transition duration-150 ease-in-out hover:bg-green-500 sm:px-4">
       {text}
     </a>
+    
   );
 }
 

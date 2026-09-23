@@ -1,7 +1,7 @@
 
 export function MissaoCard({titulo, texto, icone}) {
     return(
-      <div className="flex flex-col gap-5 rounded-lg border border-gray-200 bg-white p-5 shadow-xl w-[30%]">
+      <div className="flex flex-col gap-5 rounded-lg border border-gray-200 bg-white p-5 shadow-xl w-full">
       <div className="flex m-6 items-center justify-start text-6xl">
         {icone}
       </div>

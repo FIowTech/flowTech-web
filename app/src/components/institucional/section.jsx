@@ -1,4 +1,4 @@
-export function Section({title, description, subtitle, children, ehCinza}) {
+export function Section({title, description, subtitle, children}) {
 
   return (
     <section id="nossa_missao"
