@@ -10,7 +10,6 @@ export default function App() {
       <Navbar />
 
       <main>
-        {/* HERO */}
         <section
           className="relative isolate flex min-h-155 flex-col justify-center gap-8 bg-green-950 bg-cover bg-center px-6 py-16 sm:px-10 lg:min-h-170 lg:px-16 lg:py-20"
           style={{ backgroundImage: "url('./public/assets/portico-index.png')" }}
