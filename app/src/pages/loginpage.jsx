@@ -15,35 +15,50 @@ export default function LoginPage(){
     return(
 
        <div className="min-h-screen bg-green-950"> 
+<div className="flex flex-col lg:flex-row min-h-screen">
 
-  <div className="flex flex-col lg:flex-row min-h-screen">
-    <div id="botao-voltar" className="panel-bg relative flex-1 lg:flex-56 px-6 sm:px-10 lg:px-14 py-10 lg:py-12 flex flex-col overflow-hidden">
-      <a href="index.html" className="back-btn relative z-10">
+  <div
+    id="botao-voltar"
+    className="panel-bg relative flex-1 lg:flex-[1.3] px-6 sm:px-10 lg:px-14 py-10 lg:py-12 flex flex-col overflow-hidden"
+  >
+
+   <a href="index.html"
+        className="relative z-10 inline-flex w-fit items-center gap-2 self-start rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+      >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
         Voltar
       </a>
+
+         <div className="relative z-10 max-w-md mt-10 lg:mt-0">
+
+        <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white mb-4">
+          O monitoramento dos seus pórticos, sob controle total.
+        </h1>
+
+        <span className="block text-[15px] leading-relaxed text-[#a9c2bc]">
+          Acesse a central do mantenedor e acompanhe a saúde de cada pórtico
+          Free Flow em tempo real, com alertas antes que a operação seja afetada.
+        </span>
       </div>
 
-      <div className="mt-10 lg:mt-14 max-w-md relative z-10">
-        <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white mb-4">O monitoramento dos
-          seus pórticos, sob controle total.</h1>
-        <span className="block text-[15px] leading-relaxed text-[#a9c2bc]">Acesse a central do mantenedor e acompanhe a
-          saúde de cada pórtico Free Flow em tempo real, com alertas antes que a operação seja afetada.</span>
-           <div className="flex-1 min-h-16 text-white mb-4" ></div>
-        </div>
+      <div id="Cards" className="relative z-10 grid grid-cols-2 gap-3">
+        {loginitems.map((item) => (
+          <LoginItem
+            key={item.title}
+            title={item.title}
+            number={item.number}
+            description={item.description}
+          />
+        ))}
+      </div>
 
-
-
-<div id="Cards" className=" relative z-10 grid grid-cols-2 gap-3 ">
-    {loginitems.map((item) => (
-        <LoginItem key={item.title} title={item.title} number={item.number} description={item.description}/>
-    ))}
-</div>      
+    </div>  
     
-    <div className="flex-1 lg:flex-44 bg-white flex items-center justify-center px-6 sm:px-8 py-12 lg:py-10">
-      <div className="w-full max-w-392px">
+    
+    <div className="flex-1 lg:flex-1 bg-white flex items-center justify-center px-6 sm:px-8 py-12 lg:py-10">
+      <div className="w-full max-w-380px">
         <div className="flex items-center gap-2 font-extrabold text-[16px] text-slate-900 mb-9">FlowTech</div>
 
         <div id="div_acao">
@@ -62,10 +77,11 @@ export default function LoginPage(){
             ))}
 
           <button type="submit"
-                    className="mt-1.5 w-full bg-green700 hover:bg-green600 text-black rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px" onClick='cadastro()'>
+                  className="mt-1.5 w-full bg-green-700 hover:bg-green600 text-white rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px" 
+                  onClick='cadastro()'>
             Criar conta
            <svg
-            className="w-15px h-15px"
+            className="w-4 h-4"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -77,13 +93,15 @@ export default function LoginPage(){
         </svg>
           </button>
 
-          <div className="text-center text-[13px] text-slate-500 mt-2">Já tem conta? <a href="login.html" class="font-bold text-green700 hover:underline">Entrar</a>
+          <div className="text-center text-[13px] text-slate-500 mt-2">Já tem conta? <a href="login.html" className="font-bold text-green700 hover:underline">Entrar</a>
+          
           </div>
         </form>
         </div>
+        </div>
       </div>
     </div>
-    </div>
+    
 </div>
 
 
