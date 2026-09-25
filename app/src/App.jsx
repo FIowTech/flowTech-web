@@ -12,7 +12,7 @@ export default function App() {
       <main>
         <section
           className="relative isolate flex min-h-155 flex-col justify-center gap-8 bg-green-950 bg-cover bg-center px-6 py-16 sm:px-10 lg:min-h-170 lg:px-16 lg:py-20"
-          style={{ backgroundImage: "url('./public/assets/portico-index.png')" }}
+          style={{ backgroundImage: "url('/assets/portico-index.png')" }}
         >
           <div className="absolute inset-0 -z-10 bg-green-950/75"></div>
           <div className="flex w-full max-w-3xl flex-col justify-between gap-8 text-white">
@@ -51,17 +51,17 @@ export default function App() {
         >
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
             <MissaoCard
-              icone={<img src="./public/assets/hardware.svg" alt="" className="h-10 w-10" />}
+              icone={<img src="/assets/hardware.svg" alt="" className="h-10 w-10" />}
               titulo="Visibilidade de Hardware"
               texto="Captura contínua de métricas críticas de CPU, RAM, Disco e Rede. Acompanhe a saúde de cada máquina em tempo real e elimine gargalos de processamento."
             />
             <MissaoCard
-              icone={<img src="./public/assets/alertas.svg" alt="" className="h-10 w-10" />}
+              icone={<img src="/assets/alertas.svg" alt="" className="h-10 w-10" />}
               titulo="Coleta e Alertas Automáticos"
               texto="Automação na extração de dados do sistema sem carregar a máquina. Receba alertas antes que um pico de consumo derrube a sua central."
             />
             <MissaoCard
-              icone={<img src="./public/assets/expansao.svg" alt="" className="h-10 w-10" />}
+              icone={<img src="/assets/expansao.svg" alt="" className="h-10 w-10" />}
               titulo="Expansão Controlada"
               texto="Monitore de uma a centenas de máquinas simultaneamente. Adicione novas centrais ao FlowTech mantendo a estabilidade e o histórico de dados intactos."
             />
@@ -77,13 +77,13 @@ export default function App() {
           </p>
           <img
             className="w-full max-w-4xl rounded-sm border border-gray-300"
-            src="./public/assets/image.png"
+            src="/assets/image.png"
             alt="Dashboard de diagnóstico do FlowTech"
           />
         </section>
 
         {/* RECURSOS */}
-        <section id="recursos" className="flex flex-col items-center bg-gray-100 px-6 py-10 sm:px-10">
+        <Section id="recursos" className="flex flex-col items-center bg-gray-100 px-6 py-10 sm:px-10">
           <h2 className="text-3xl font-bold sm:text-5xl">Recursos da Plataforma</h2>
           <div className="grid grid-cols-1 gap-4 py-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
             <RecursoCard
@@ -103,7 +103,7 @@ export default function App() {
               texto="APIs flexíveis para conectar o FlowTech diretamente aos seus sistemas legados de rodovias."
             />
           </div>
-        </section>
+        </Section>
       </main>
 
       {/* FOOTER */}
