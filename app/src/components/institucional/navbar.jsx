@@ -1,4 +1,4 @@
-import { PhoneIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
 
 export function Navbar() {
@@ -9,20 +9,16 @@ export function Navbar() {
       icon: null,
     },
     { text: "Nossa Solução", href: "#nossa_solucao", icon: null },
-    { text: "Recursos", href: "#recuros", icon: null },
-    {
-      text: "Contato",
-      href: "#contato",
-      icon: <PhoneIcon size={24} weight="duotone" />,
-    },
+    { text: "Recursos", href: "#recursos", icon: null },
   ];
+
   return (
-    <header className="flex flex-col items-center gap-4 px-6 py-5 sm:flex-row sm:justify-between sm:px-8 lg:px-12">
-      <span className="flex items-center">
-        <h1 className="text-2xl font-bold">FlowTech</h1>
+    <header className="top-0 z-20 flex items-center justify-between border-b border-line bg-paper/90 px-6 py-4 backdrop-blur sm:px-10 lg:px-16">
+      <span className="text-lg font-bold tracking-tight text-ink">
+        FlowTech
       </span>
 
-      <nav className="flex flex-wrap justify-center gap-1 text-sm sm:gap-3 lg:gap-5">
+      <nav className="flex items-center gap-1 sm:gap-2">
         {navitems.map((item) => (
           <NavItem
             key={item.href}
@@ -31,24 +27,26 @@ export function Navbar() {
             icon={item.icon}
           />
         ))}
-        <Link
-          to="/login"
-          className="bg-green-500 rounded px-3 py-2 transition duration-150 ease-in-out hover:bg-gray-100 sm:px-4"
-        >
-          Entrar
-        </Link>
       </nav>
+      <Link
+        to="/login"
+        className="flex items-center gap-2 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#255840]"
+      >
+        Ver plataforma
+        <ArrowRightIcon size={16} weight="bold" />
+      </Link>
     </header>
+
   );
 }
 
 function NavItem({ href, text, icon }) {
   return (
-    <Link
-      to={href}
+    <a
+      href={href}
       className="flex items-center gap-2 rounded px-3 py-2 transition duration-150 ease-in-out hover:bg-green-500 sm:px-4"
     >
       <p>{text}</p> {icon}
-    </Link>
+    </a>
   );
 }
