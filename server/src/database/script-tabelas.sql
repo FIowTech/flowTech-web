@@ -1,4 +1,4 @@
--- DROP DATABASE IF EXISTS flowtech;
+DROP DATABASE IF EXISTS flowtech;
 CREATE DATABASE IF NOT EXISTS flowtech;
 USE flowtech;
 
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS endereco (
 
 CREATE TABLE IF NOT EXISTS empresa (
     id_empresa 			INT NOT NULL AUTO_INCREMENT,
-    endereco_id 		INT NOT NULL,
+    endereco_id 		INT NULL,
     
     cnpj 				CHAR(14) NOT NULL UNIQUE,
     razao_social 		VARCHAR(120) NOT NULL,
@@ -147,6 +147,34 @@ CREATE TABLE IF NOT EXISTS log_usuario (
 -- | CRIAÇÃO DAS PROCEDURES | --
 DELIMITER $$
 CREATE PROCEDURE sp_cadastrar_empresa(
+	IN in_cnpj CHAR(14),
+    IN in_razao_social VARCHAR(120),
+    IN in_nome_fantasia VARCHAR(120),
+    IN in_email VARCHAR(120),
+    IN in_senha VARCHAR(255)
+) BEGIN
+	-- Tratamento de Erro na Procedure
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Empresa.';
+	END;
+
+	-- Corpo da Procedure
+	START TRANSACTION;
+        -- 1. Criar Empresa
+		INSERT INTO empresa(cnpj, razao_social, nome_fantasia, email)
+			VALUES (in_cnpj, in_razao_social, in_nome_fantasia, in_email);
+			
+		-- 2. Criar Usuário ADM da Empresa criada
+		INSERT INTO usuario(empresa_id, nome, email, senha, nivel_acesso)
+			VALUES (LAST_INSERT_ID(), CONCAT("Usuário de ", in_nome_fantasia), in_email, SHA2(in_senha, 256), 1);
+    COMMIT;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE PROCEDURE sp_cadastrar_empresa_com_endereco(
 	-- info necessária p/ cadastrar endereço
 	IN in_cep CHAR(8),
     IN in_logradouro VARCHAR(120),
@@ -162,7 +190,6 @@ CREATE PROCEDURE sp_cadastrar_empresa(
     IN in_email VARCHAR(120),
     IN in_senha VARCHAR(255)
 ) BEGIN
-
 	-- Tratamento de Erro na Procedure
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
@@ -184,18 +211,20 @@ CREATE PROCEDURE sp_cadastrar_empresa(
 		INSERT INTO usuario(empresa_id, nome, email, senha, nivel_acesso)
 			VALUES (LAST_INSERT_ID(), CONCAT("Usuário de ", in_nome_fantasia), in_email, SHA2(in_senha, 256), 1);
     COMMIT;
-
 END$$
 DELIMITER ;
 
 -- | INSERTS PADRÃO | --
+
+-- Componentes Monitorados pela Aplicação
 INSERT INTO componente(nome, unidade_medida, depende_de)
 	VALUES ('cpu', 'pct', 'psutil.cpu_percent'),
     ('ram', 'MiB', 'psutil.virtual_memory'),
     ('disco', 'GiB', 'psutil.disk_usage'),
     ('placa_rede', 'Mbps', 'psutil.net_if_stats');
 
-CALL sp_cadastrar_empresa(
+-- Empresa/Usuário para uso INTERNO da FlowTech
+CALL sp_cadastrar_empresa_com_endereco(
 	"00000000",
     "Rua XPTO.",
     "Abc.",
@@ -207,5 +236,8 @@ CALL sp_cadastrar_empresa(
     "FlowTech Soluções Tecnológicas S.A.",
     "FlowTech",
     "infra@flowtech.com.br",
-    "Dinossauro1."
+    "Sptech#2026"
 );
+UPDATE usuario 
+	SET nivel_acesso = 0 -- permissão de DESENVOLVEDOR, maior possível.
+WHERE email = "infra@flowtech.com.br";
