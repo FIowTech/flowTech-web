@@ -64,8 +64,8 @@ export default function LoginPage() {
             <div id="div_acao">
 
               <div className="mb-6">
-                <h2 className="text-[23px] font-extrabold tracking-tight mb-1.5">Crie sua conta</h2>
-                <span className="block text-[13.5px] text-slate-500">Cadastre-se para acompanhar a saúde dos seus pórticos Free
+                <h2 className="text-[23px] font-extrabold tracking-tight mb-1.5">Logue na sua conta</h2>
+                <span className="block text-[13.5px] text-slate-500">Faça login na sua conta para acompanhar a saúde dos seus pórticos Free
                   Flow.</span>
               </div>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
                 <button type="submit"
                   className="mt-1.5 w-full bg-green-700 hover:bg-green600 text-white rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px"
                   onClick='cadastro()'>
-                  Criar conta
+                  Entrar
                   <svg
                     className="w-4 h-4"
                     viewBox="0 0 24 24"
@@ -93,7 +93,7 @@ export default function LoginPage() {
                   </svg>
                 </button>
 
-                <div className="text-center text-[13px] text-slate-500 mt-2">Já tem conta? <a href="login.html" className="font-bold text-green700 hover:underline">Entrar</a>
+                <div className="text-center text-[13px] text-slate-500 mt-2">Não tem conta? <a href="login.html" className="font-bold text-green700 hover:underline">Cadastrar empresa</a>
 
                 </div>
               </form>
