@@ -1,4 +1,4 @@
-DROP DATABASE IF EXISTS flowtech;
+-- DROP DATABASE IF EXISTS flowtech;
 CREATE DATABASE IF NOT EXISTS flowtech;
 USE flowtech;
 
@@ -49,9 +49,9 @@ CREATE TABLE IF NOT EXISTS empresa (
 CREATE TABLE IF NOT EXISTS embarcado (
     id_embarcado 		INT NOT NULL AUTO_INCREMENT,
     empresa_id 			INT NOT NULL,
-    endereco_id 		INT NOT NULL UNIQUE,
+    endereco_id 		INT NOT NULL,
     
-    endereco_mac 		CHAR(12) NOT NULL UNIQUE,
+    endereco_mac 		CHAR(17) NOT NULL UNIQUE,
     apelido 			VARCHAR(60) NOT NULL,
     modelo 				VARCHAR(60) NOT NULL,
     status 				TINYINT(1) NOT NULL DEFAULT 1,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS embarcado (
 CREATE TABLE IF NOT EXISTS componente (
     id_componente INT NOT NULL AUTO_INCREMENT,
     
-    nome 				VARCHAR(60) NOT NULL,
+    nome 				VARCHAR(60) NOT NULL UNIQUE,
     unidade_medida 		VARCHAR(20) NOT NULL,
     depende_de			VARCHAR(60) NOT NULL,
     data_criacao 		DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -144,7 +144,25 @@ CREATE TABLE IF NOT EXISTS log_usuario (
         FOREIGN KEY (usuario_id) REFERENCES usuario(id_usuario)
 );
 
+-- | CRIAÇÃO DAS VIEWS | --
+
+-- VW01: Retorna uma lista de embarcados com seus componentes monitorados + parametrizações
+CREATE OR REPLACE VIEW vw_componentes_monitorados
+AS
+SELECT 
+	e.id_embarcado, e.empresa_id, e.endereco_mac, e.apelido, 
+    c.nome, c.unidade_medida, c.depende_de, 
+    p.limite_max, p.limite_min
+FROM embarcado e 
+JOIN parametro p
+	ON e.id_embarcado = p.embarcado_id AND e.empresa_id = p.empresa_id
+JOIN componente c
+	ON p.componente_id = c.id_componente
+WHERE e.status <> 0 AND p.status <> 0;
+
 -- | CRIAÇÃO DAS PROCEDURES | --
+
+-- SPO1: Cadastra Empresa + primeiro Usuário com privilégio de ADM
 DELIMITER $$
 CREATE PROCEDURE sp_cadastrar_empresa(
 	IN in_cnpj CHAR(14),
@@ -173,6 +191,7 @@ CREATE PROCEDURE sp_cadastrar_empresa(
 END$$
 DELIMITER ;
 
+-- SPO2: Cadastra Empresa + Endereço + primeiro Usuário com privilégio de ADM
 DELIMITER $$
 CREATE PROCEDURE sp_cadastrar_empresa_com_endereco(
 	-- info necessária p/ cadastrar endereço
@@ -216,14 +235,28 @@ DELIMITER ;
 
 -- | INSERTS PADRÃO | --
 
--- Componentes Monitorados pela Aplicação
-INSERT INTO componente(nome, unidade_medida, depende_de)
-	VALUES ('cpu', 'pct', 'psutil.cpu_percent'),
-    ('ram', 'MiB', 'psutil.virtual_memory'),
-    ('disco', 'GiB', 'psutil.disk_usage'),
-    ('placa_rede', 'Mbps', 'psutil.net_if_stats');
+-- I01: Insere componentes monitorados pela aplicação
+INSERT INTO componente (nome, unidade_medida, depende_de)
+VALUES
+    -- CPU
+    ('cpu_usage_pct', 'pct', 'psutil.cpu_percent'),
+    ('cpu_freq_mhz', 'MHz', 'psutil.cpu_freq'),
 
--- Empresa/Usuário para uso INTERNO da FlowTech
+    -- Memória RAM
+    ('ram_usage_mb', 'MiB', 'psutil.virtual_memory'),
+
+    -- Memória SWAP
+    ('swap_usage_mb', 'MiB', 'psutil.swap_memory'),
+
+    -- Armazenamento
+    ('disk_usage_mb', 'MiB', 'psutil.disk_usage'),
+
+    -- Rede e Latência
+    ('download_mbps', 'Mbps', 'psutil.net_io_counters'),
+    ('upload_mbps', 'Mbps', 'psutil.net_io_counters'),
+    ('latency_ms', 'ms', 'ping');
+
+-- I02: Insere Empresa/Usuário padrão para o uso INTERNO da FlowTech
 CALL sp_cadastrar_empresa_com_endereco(
 	"00000000",
     "Rua XPTO.",
