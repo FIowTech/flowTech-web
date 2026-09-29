@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS endereco (
     
     cep 				CHAR(8) NOT NULL,		-- XXXXX-XXX
     logradouro 			VARCHAR(120) NULL,		-- Avenida/Rua XPTO.
-    bairro 				VARCHAR(60) NULL,		-- Bairro Abc.
+    bairro 				VARCHAR(60) NULL,		-- Bairro Abc.	
     localidade 			VARCHAR(60) NOT NULL,	-- São Paulo
     uf 					CHAR(2) NOT NULL,		-- SP
     numero 				VARCHAR(20) NULL,		-- XXXX
@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS log_usuario (
 CREATE OR REPLACE VIEW vw_componentes_monitorados
 AS
 SELECT 
-	e.id_embarcado, e.empresa_id, e.endereco_mac, e.apelido, 
-    c.nome, c.unidade_medida, c.depende_de, 
+	e.id_embarcado, e.empresa_id, e.endereco_mac, e.apelido AS "servidor", 
+    c.nome AS "componente", c.unidade_medida, c.depende_de, 
     p.limite_max, p.limite_min
 FROM embarcado e 
 JOIN parametro p
