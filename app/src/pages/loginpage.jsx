@@ -1,3 +1,5 @@
+import.meta.env.VITE_API_URL
+
 export default function LoginPage() {
   const loginitems = [
     { title: "Pórticos monitorados", number: "70", description: "distribuídos em 12 rodovias" },
@@ -6,11 +8,10 @@ export default function LoginPage() {
     { title: "Tempo de respostas", number: "4 min", description: "tempo médio ate o alerta" },
   ];
 
-  const caditems = [
-    { info: "Nome completo", place: "Insira seu nome" },
-    { info: "E-mail", place: "seuemail@email.com" },
-    { info: "Senha", place: "Mínimo 8 caracteres" },
-    { info: "Codigo", place: "Mínimo 8 caracteres" },
+  const compitems = [
+    { type: "email_input", info: "E-mail", place: "seuemail@email.com" },
+    { type: "senha_input", info: "Senha", place: "Mínimo 8 caracteres" },
+    { type: "senha_input", info: "Codigo", place: "Mínimo 8 caracteres" },
   ]
   return (
 
@@ -65,21 +66,25 @@ export default function LoginPage() {
 
               <div className="mb-6">
                 <h2 className="text-[23px] font-extrabold tracking-tight mb-1.5">Logue na sua conta</h2>
-                <span className="block text-[13.5px] text-slate-500">Faça login na sua conta para acompanhar a saúde dos seus pórticos Free
+                <span className="block text-[13.5px] text-slate-500">Faça login para acompanhar a saúde dos seus pórticos Free
                   Flow.</span>
               </div>
 
 
               <form onSubmit="return false" className="flex flex-col gap-4">
 
-                {caditems.map((item) => (
-                  <CadastroItem key={item.info} info={item.info} place={item.place} />
+                {compitems.map((item) => (
+                  <CompItem key={item.info} 
+                  info={item.info} 
+                  place={item.place}>
+
+                  </CompItem> 
                 ))}
 
                 <button type="submit"
                   className="mt-1.5 w-full bg-green-700 hover:bg-green600 text-white rounded-[9px] py-3.5 text-[13px] font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition active:translate-y-px"
-                  onClick='cadastro()'>
-                  Entrar
+                  onClick={login()}>
+                  Criar conta
                   <svg
                     className="w-4 h-4"
                     viewBox="0 0 24 24"
@@ -121,7 +126,7 @@ function LoginItem({ title, number, description }) {
 }
 
 
-function CadastroItem({ info, place }) {
+function CompItem({type ,info, place }) {
   return (
     <div>
       <span className="block text-[12.5px] font-bold text-slate-900 mb-1.5">{info}</span>
@@ -131,9 +136,43 @@ function CadastroItem({ info, place }) {
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21v-1a8 8 0 0 1 16 0v1" />
         </svg>
-        <input type="text" placeholder={place}
+        <input  id={type} type="text" placeholder={place}
           className="field-input w-full text-sm text-slate-900 bg-mist border border-lineGray rounded-[9px] pl-10 pr-3.5 py-3 outline-none transition placeholder:text-slate-400"></input>
       </div>
     </div>
   )
 }
+
+
+function login(){
+
+
+  let email = email_input.value
+  let senha = senha_input.value
+  let codigo = codigo_input.value
+
+
+  fetch(`${import.meta.env.VITE_API_URL}/usuarios`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      emailServer: email,
+      senhaServer: senha,
+      codigoServer: codigo
+    })
+  }).then(function (respostas){
+    console.log("estou no then do login()")
+
+    if (respostas.ok) {
+      console.log(respostas);
+      respostas.json().then(json =>{
+        console.log(json)
+        console.log(JSON.stringify(json))
+      })
+    }
+  })
+
+}
+/*process.env import meta*/
