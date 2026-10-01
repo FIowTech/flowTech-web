@@ -1,94 +1,154 @@
-const { isMissing } = require("../utils");
 const empresaModel = require("../models/empresaModel");
+const usuarioModel = require("../models/usuarioModel");
+const {
+  isMissing,
+  isEmailValid,
+  isPasswordValid,
+} = require("../utils/validacao");
+const { gerarCodigoAcesso } = require("../utils/geradorCodigo");
 
 async function cadastrar(req, res) {
-  const { cnpj, razao_social, nome_fantasia, email, senha, endereco } =
-    req.body;
+  const { nivel_acesso } = req.usuario;
+  const { cnpj, razao_social, nome_fantasia, email, senha } = req.body;
+
+  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
+  if (nivel_acesso !== 0) {
+    return res
+      .status(403)
+      .send({ message: "Você não tem permissão para realizar esta ação." });
+  }
 
   if (isMissing(cnpj)) {
     return res.status(400).send({ message: "O campo 'cnpj' está faltando." });
   }
-  if (isMissing(razao_social)) {
-    return res
-      .status(400)
-      .send({ message: "O campo 'razao_social' está faltando" });
-  }
+
   if (isMissing(nome_fantasia)) {
     return res
       .status(400)
-      .send({ message: "O campo 'nome_fantasia' está faltando" });
+      .send({ message: "O campo 'nome_fantasia' está faltando." });
   }
-  if (isMissing(email)) {
-    return res.status(400).send({ message: "O campo 'email' esta faltando" });
-  }
+
   if (!isEmailValid(email)) {
-    return res.status(400).send({ message: "O campo 'email' esta inválido" });
+    return res
+      .status(400)
+      .send({ message: "O endereço de e-mail fornecido está inválido." });
   }
-  if (isMissing(senha)) {
-    return res.status(400).send({ message: "O campo 'senha' esta faltando" });
-  }
+
   if (!isPasswordValid(senha)) {
-    return res.status(400).send({ message: "O campo 'senha' esta inválido" });
+    return res.status(400).send({
+      message: "A senha fornecida está inválida.",
+    });
   }
 
   try {
+    // 1. Verifica se CNPJ informado está em uso
     const cnpjEmUso = await empresaModel.existePorCnpj(cnpj);
     if (cnpjEmUso) {
-      return res.status(409).json({ message: "Este CNPJ já está em uso." });
-    }
- 
-    
-    if (endereco) {
-      await empresaModel.cadastrarComEndereco(
-        cnpj,
-        razao_social,
-        nome_fantasia,
-        email,
-        senha,
-        endereco,
-      );
-    } else {
-      await empresaModel.cadastrar(
-        cnpj,
-        razao_social,
-        nome_fantasia,
-        email,
-        senha,
-      );
+      return res
+        .status(409)
+        .json({ message: "CNPJ informado já está em uso." });
     }
 
-    return res.status(201).json({ message: "Empresa cadastrada com sucesso!" });
+    // 2. Verifica se Email informado está em uso
+    const emailEmUso = await usuarioModel.existePorEmail(email);
+    if (emailEmUso) {
+      return res
+        .status(409)
+        .json({ message: "Email de contato informado já está em uso." });
+    }
+
+    // 3. Inicia registro de Empresa
+    await empresaModel.cadastrar(
+      cnpj,
+      razao_social,
+      nome_fantasia,
+      email,
+      senha,
+    );
+
+    res.status(201).send({ message: "Empresa cadastrada com sucesso!" });
   } catch (error) {
     const message = error.message || error.sqlMessage;
     if (message) {
-      res.status(400).json({ message });
+      res.status(403).send({ message });
       return;
     }
-    res.status(500).json({ message: "Erro interno no servidor." });
+    res.status(500).send({ message: "Erro interno no servidor." });
+  }
+}
+
+async function buscarPorId(req, res) {
+  const { empresa_id } = req.usuario;
+
+  if (isMissing(empresa_id)) {
+    return res
+      .status(400)
+      .send({ message: "ID da empresa não foi passado na requisição." });
+  }
+
+  try {
+    const empresaExiste = await empresaModel.existePorId(empresa_id);
+    if (!empresaExiste) {
+      return res
+        .status(404)
+        .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
+    }
+
+    const empresaResult = await empresaModel.buscarPorId(empresa_id);
+
+    res.status(200).json({
+      message: "Empresa encontrada com sucesso!",
+      result: empresaResult[0],
+    });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      res.status(403).send({ message });
+      return;
+    }
+    res.status(500).send({ message: "Erro interno no servidor." });
+  }
+}
+
+async function gerarCodigo(req, res) {
+  const { empresa_id, id_usuario, nivel_acesso } = req.usuario;
+  const { qtd_usos_max, data_expiracao } = req.body;
+
+  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
+  if (nivel_acesso > 1) {
+    return res
+      .status(403)
+      .send({ message: "Você não tem permissão para realizar esta ação." });
+  }
+
+  if (isMissing(data_expiracao)) {
+    return res
+      .status(400)
+      .send({ message: "O campo 'data_expiracao' está faltando." });
+  }
+
+  try {
+    await empresaModel.criarCodigo(
+      id_usuario,
+      empresa_id,
+      gerarCodigoAcesso(),
+      qtd_usos_max < 1 ? 1 : qtd_usos_max,
+      data_expiracao,
+    );
+
+    res.status(201).json({ message: "Código de Acesso criado com sucesso!" });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      res.status(403).send({ message });
+      return;
+    }
+    res.status(500).send({ message: "Erro interno no servidor." });
   }
 }
 
 module.exports = {
   cadastrar,
+  buscarPorId,
+  gerarCodigo,
 };
-
-
-//   const { cnpj, razao_social, nome_fantasia, email, senha, endereco } = req.body;
-/*
-{
-  "cnpj": "00000000000000",
-  "razao_social": "asdasd",
-  "nome_fantasia": "asdasd",
-  "email": "asdas@gmail.com",
-  "senha": "Sptech#2026",
-  "endereco": {
-    "cep": "00000000",
-    "logradouro": "asdasd",
-    "bairro": "asdasd",
-    "numero": "000",
-    "complemento": "",
-    "localidade": "asdasd",
-    "uf": "as"
-  }
-}
-*/
