@@ -1,47 +1,154 @@
-var usuarioModel = require("../models/usuarioModel");
+const {
+  isMissing,
+  isEmailValid,
+  isPasswordValid,
+} = require("../utils/validacao");
+const usuarioModel = require("../models/usuarioModel");
+const jwt = require("jsonwebtoken");
 
-function cadastrar(req, res) {
-    var nome = req.body.nome;
-    var email = req.body.email;
-    var senha = req.body.senha;
-    var codigo = req.body.codigo;
+async function autenticar(req, res) {
+  const { email, senha } = req.body;
 
-    let fk_empresa;
-    let codValido = false;
+  if (isMissing(email)) {
+    res.status(400).send({ message: "O campo 'email' está faltando." });
+    return;
+  }
 
-    usuarioModel.verificarCodigo(codigo).then((resultado) => {
-        if(resultado.length > 0) {
-            console.log("passou 1");
-            fk_empresa = resultado[0].fk_empresa;
-            codValido = true;
+  if (isMissing(senha)) {
+    res.status(400).send({ message: "O campo 'senha' está faltando." });
+    return;
+  }
 
-            if(codValido) {
-                console.log("Validou o cod");
-                usuarioModel.cadastrar(nome, email, senha, fk_empresa).then((resultado) => {
-                res.status(200).send("Cadastro autorizado!");
-                });
-            }
-        }
+  try {
+    // 1. Tenta autenticar usuário
+    const result = await usuarioModel.autenticar(email, senha);
+    if (!result || result.length != 1) {
+      throw new Error("Usuário inexistente ou credenciais inválidas.");
+    }
+
+    // 2. Se conseguir, cria um token JWT com o objeto do usuário logado e
+    // anexa o token à resposta
+    const usuario = result[0];
+    const payload = {
+      ...usuario,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      algorithm: "HS256",
+      expiresIn: "24h",
     });
+
+    // Cookie HttpOnly: inacessível via frontend e contém informações sensíveis
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    // Cookie Autenticado: acessível via frontend, contém apenas um boolean.
+    res.cookie("autenticado", true, {
+      httpOnly: false,
+      secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    res.status(200).send({
+      message: "Usuário logado com sucesso!",
+      redirectTo:
+        usuario.nivel_acesso === 0 ? "/empresas/cadastrar" : "/dashboard",
+      usuario: {
+        nome: usuario.nome,
+        email: usuario.email,
+      },
+    });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      res.status(403).send({ message });
+      return;
+    }
+    res.status(500).send({ message: "Erro interno no servidor." });
+  }
 }
 
-function login(req, res) {
-    var email = req.body.email;
-    var senha = req.body.senha;
+async function cadastrar(req, res) {
+  const { codigo_acesso, nome, email, senha } = req.body;
 
-    usuarioModel.login(email, senha).then((resultado) => {
-        if(resultado.length > 0) {
-            res.status(200).json({
-                id: resultado[0].id,
-                empresa_id: resultado[0].fk_empresa
-            });
-        } else {
-            res.status(403).send("Credenciais inválidas");
-        }
-    })
+  if (isMissing(codigo_acesso)) {
+    return res
+      .status(400)
+      .send({ message: "O campo 'codigo_acesso' está faltando." });
+  }
+
+  if (isMissing(nome)) {
+    return res.status(400).send({ message: "O campo 'nome' está faltando." });
+  }
+
+  if (isMissing(email)) {
+    return res.status(400).send({ message: "O campo 'email' está faltando." });
+  }
+
+  if (!isEmailValid(email)) {
+    res
+      .status(400)
+      .send({ message: "O endereço de e-mail fornecido está inválido." });
+    return;
+  }
+
+  if (isMissing(senha)) {
+    return res.status(400).send({ message: "O campo 'senha' está faltando." });
+  }
+
+  if (!isPasswordValid(senha)) {
+    return res.status(400).send({
+      message: "A senha fornecida está inválida.",
+    });
+  }
+
+  try {
+    // 1. Verifica se Email informado está em uso
+    const emailEmUso = await usuarioModel.existePorEmail(email);
+    if (emailEmUso) {
+      return res
+        .status(409)
+        .json({ message: "Email informado já está em uso." });
+    }
+
+    // 3. Inicia registro de usuário
+    await usuarioModel.cadastrar(codigo_acesso, nome, email, senha);
+
+    res.status(201).send({ message: "Usuário cadastrado com sucesso!" });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      return res.status(403).send({ message });
+    }
+    res.status(500).send({ message: "Erro interno no servidor." });
+  }
+}
+
+async function sair(req, res) {
+  const token = req.cookies?.access_token;
+  if (token) {
+    res.clearCookie("access_token");
+    res.clearCookie("autenticado");
+  }
+
+  return res.status(200).json({ message: "Logout realizado." });
+}
+
+async function autenticarPagina(req, res) {
+  if (req.status == 401) {
+    return res.status(403);
+  }
+  return res.status(200);
 }
 
 module.exports = {
-    cadastrar,
-    login
-}
+  autenticar,
+  cadastrar,
+  sair,
+  autenticarPagina,
+};

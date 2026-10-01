@@ -5,7 +5,6 @@ const {
   isEmailValid,
   isPasswordValid,
 } = require("../utils/validacao");
-const { gerarCodigoAcesso } = require("../utils/geradorCodigo");
 
 async function cadastrar(req, res) {
   const { nivel_acesso } = req.usuario;
@@ -110,45 +109,7 @@ async function buscarPorId(req, res) {
   }
 }
 
-async function gerarCodigo(req, res) {
-  const { empresa_id, id_usuario, nivel_acesso } = req.usuario;
-  const { qtd_usos_max, data_expiracao } = req.body;
-
-  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
-  if (nivel_acesso > 1) {
-    return res
-      .status(403)
-      .send({ message: "Você não tem permissão para realizar esta ação." });
-  }
-
-  if (isMissing(data_expiracao)) {
-    return res
-      .status(400)
-      .send({ message: "O campo 'data_expiracao' está faltando." });
-  }
-
-  try {
-    await empresaModel.criarCodigo(
-      id_usuario,
-      empresa_id,
-      gerarCodigoAcesso(),
-      qtd_usos_max < 1 ? 1 : qtd_usos_max,
-      data_expiracao,
-    );
-
-    res.status(201).json({ message: "Código de Acesso criado com sucesso!" });
-  } catch (error) {
-    const message = error.message || error.sqlMessage;
-    if (message) {
-      res.status(403).send({ message });
-      return;
-    }
-    res.status(500).send({ message: "Erro interno no servidor." });
-  }
-}
-
 module.exports = {
   cadastrar,
   buscarPorId,
-  gerarCodigo,
 };

@@ -1,7 +1,7 @@
 const crypto = require("node:crypto");
 
 const CARACTERES = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-function gerarCodigoAcesso(tamanho = 12) {
+function gerarCodigoRandomico(tamanho = 12) {
   let codigo = "";
 
   for (let i = 0; i < tamanho; i++) {
@@ -12,4 +12,4 @@ function gerarCodigoAcesso(tamanho = 12) {
   return codigo;
 }
 
-module.exports = { gerarCodigoAcesso, CARACTERES };
+module.exports = { gerarCodigoRandomico, CARACTERES };

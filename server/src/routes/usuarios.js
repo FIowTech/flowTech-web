@@ -1,16 +1,22 @@
 const express = require("express");
-const router = express.Router();
-const authMiddleware = require("../middlewares/auth")
-
 const usuarioController = require("../controllers/usuarioController");
+const authMiddleware = require("../middlewares/auth");
 
-//Recebendo os dados do html e direcionando para a função cadastrar de usuarioController.js
-router.post("/cadastrar", authMiddleware, function (req, res) {
+const router = express.Router();
+
+// === POST | Cadastrar Usuário === //
+router.post("/cadastrar", function (req, res) {
   usuarioController.cadastrar(req, res);
 });
 
+// === POST | Logar Usuário === //
 router.post("/login", function (req, res) {
-  usuarioController.login(req, res);
+  usuarioController.autenticar(req, res);
+});
+
+// === POST | Deslogar Usuário === //
+router.post("/sair", authMiddleware, function (req, res) {
+  usuarioController.sair(req, res);
 });
 
 module.exports = router;

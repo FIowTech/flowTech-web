@@ -5,10 +5,12 @@ const authMiddleware = require("../middlewares/auth");
 const usuariosRouter = require("./usuarios");
 const empresasRouter = require("./empresas");
 const embarcadosRouter = require("./embarcados");
+const codigoDeAcessoRouter = require("./codigos-acesso");
 
 router.use("/usuarios", usuariosRouter);
 router.use("/empresas", authMiddleware, empresasRouter);
 router.use("/embarcados", authMiddleware, embarcadosRouter);
+router.use("/codigos", authMiddleware, codigoDeAcessoRouter);
 
 module.exports = router;
 

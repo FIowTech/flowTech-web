@@ -17,8 +17,4 @@ router.get("/", function (req, res) {
   empresaController.buscarPorId(req, res);
 });
 
-router.post("/codigos", function (req, res){
-  empresaController.gerarCodigo(req, res);
-});
-
 module.exports = router;
