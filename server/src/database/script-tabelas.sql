@@ -95,24 +95,6 @@ CREATE TABLE IF NOT EXISTS parametro (
         FOREIGN KEY (componente_id) REFERENCES componente(id_componente)
 );
 
-CREATE TABLE IF NOT EXISTS codigo_autenticacao (
-    id_codigo 		INT NOT NULL AUTO_INCREMENT,
-    empresa_id 		INT NOT NULL,
-    
-    cod 			CHAR(5) NOT NULL,
-    status 			VARCHAR(20) NOT NULL,
-    data_criacao 	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    PRIMARY KEY(id_codigo, empresa_id),
-    CONSTRAINT fk_codigo_autenticacao_empresa
-        FOREIGN KEY (empresa_id) REFERENCES empresa(id_empresa), -- não coloco ON DELETE CASCADE aqui, com a intenção de manter os registros
-	
-    CONSTRAINT chk_codigo_autenticacao_status
-		CHECK(status IN("aberto", "usado", "expirado")),
-	CONSTRAINT uk_codigo_autenticacao_cod_empresa
-		UNIQUE(cod, empresa_id)
-);
-
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario 			INT NOT NULL AUTO_INCREMENT,
     empresa_id 			INT NOT NULL,
@@ -142,6 +124,30 @@ CREATE TABLE IF NOT EXISTS log_usuario (
     PRIMARY KEY (id_log, usuario_id),
     CONSTRAINT fk_log_usuario_usuario
         FOREIGN KEY (usuario_id) REFERENCES usuario(id_usuario)
+);
+
+CREATE TABLE IF NOT EXISTS codigo_acesso (
+    id_codigo 		INT NOT NULL AUTO_INCREMENT,
+    usuario_id		INT NOT NULL,
+    empresa_id 		INT NOT NULL,
+
+    codigo 			CHAR(12) NOT NULL UNIQUE,
+    status 			VARCHAR(20) NOT NULL DEFAULT "valido",
+    qtd_usos_max 	INTEGER NOT NULL DEFAULT 1,
+    qtd_usos		INTEGER NOT NULL DEFAULT 0,
+
+	data_expiracao	DATETIME NOT NULL,   
+	data_criacao 	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	data_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   
+    PRIMARY KEY(id_codigo, usuario_id, empresa_id),
+    CONSTRAINT fk_codigo_acesso_usuario
+		FOREIGN KEY (usuario_id) REFERENCES usuario(id_usuario),
+    CONSTRAINT fk_codigo_acesso_empresa
+        FOREIGN KEY (empresa_id) REFERENCES empresa(id_empresa),
+        
+    CONSTRAINT chk_codigo_autenticacao_status
+		CHECK(status IN("valido", "usado", "expirado"))
 );
 
 -- | CRIAÇÃO DAS VIEWS | --
@@ -175,7 +181,7 @@ CREATE PROCEDURE sp_cadastrar_empresa(
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Empresa.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Empresa';
 	END;
 
 	-- Corpo da Procedure
@@ -213,7 +219,7 @@ CREATE PROCEDURE sp_cadastrar_empresa_com_endereco(
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Empresa.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Empresa';
 	END;
 
 	-- Corpo da Procedure
@@ -229,6 +235,54 @@ CREATE PROCEDURE sp_cadastrar_empresa_com_endereco(
 		-- 3. Criar Usuário ADM da Empresa criada
 		INSERT INTO usuario(empresa_id, nome, email, senha, nivel_acesso)
 			VALUES (LAST_INSERT_ID(), CONCAT("Usuário de ", in_nome_fantasia), in_email, SHA2(in_senha, 256), 1);
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- SPO3: Cadastra Usuário via Código de Acesso
+DELIMITER $$
+CREATE PROCEDURE sp_cadastrar_usuario(
+	IN in_codigo CHAR(12),
+    IN in_nome VARCHAR(120),
+    IN in_email VARCHAR(255),
+    IN in_senha VARCHAR(255)
+) BEGIN
+	-- Variáveis da Procedure
+    DECLARE v_empresa_id INT;
+    DECLARE v_supervisor_id INT;
+
+	-- Tratamento de Erro na Procedure
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Usuário via Código';
+	END;
+
+	-- Corpo da Procedure
+	START TRANSACTION;			
+		-- 1. Encontrar ID da Empresa e do Supervisor
+        SET v_empresa_id = 
+			(SELECT c.empresa_id FROM codigo_acesso c JOIN empresa e ON c.empresa_id = e.id_empresa WHERE codigo = in_codigo AND `status` = 'valido');
+        
+        SET v_supervisor_id = 
+			(SELECT c.usuario_id FROM codigo_acesso c JOIN usuario u ON c.usuario_id = u.id_usuario WHERE codigo = in_codigo AND `status` = 'valido');
+    
+		-- 2. Cadastrar Usuário com ID da Empresa e do Supervisor corretos
+		INSERT INTO usuario(empresa_id, supervisor_id, nome, email, senha, nivel_acesso)
+			VALUES (v_empresa_id, v_supervisor_id, in_nome, in_email, SHA2(in_senha, 256), 2);
+            
+		-- 3. Atualizar usos do Código de acesso utilizado
+        UPDATE codigo_acesso
+        SET
+			qtd_usos = CASE
+				WHEN qtd_usos + 1 > qtd_usos_max THEN qtd_usos_max
+                ELSE qtd_usos + 1
+            END,
+            `status` = CASE
+				WHEN qtd_usos + 1 > qtd_usos_max THEN 'usado'
+                ELSE 'valido'
+            END
+        WHERE codigo = in_codigo;
     COMMIT;
 END$$
 DELIMITER ;
