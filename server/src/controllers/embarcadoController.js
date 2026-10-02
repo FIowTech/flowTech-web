@@ -155,8 +155,9 @@ async function cadastrar(req, res) {
 
 async function editar(req, res) {
   const { empresa_id } = req.usuario;
-  const { id } = req.params;
+  const { embarcadoId } = req.params;
   const { endereco_mac, apelido, modelo } = req.body;
+
   const camposParaAtualizar = {};
 
   if (isMissing(empresa_id)) {
@@ -165,7 +166,7 @@ async function editar(req, res) {
       .json({ message: "ID da Empresa não foi passado na requisição." });
   }
 
-  if (isMissing(id)) {
+  if (isMissing(embarcadoId)) {
     return res
       .status(400)
       .json({ message: "ID do Servidor não foi passado na requisição." });
@@ -179,7 +180,7 @@ async function editar(req, res) {
         .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
     }
 
-    const servidorExiste = await embarcadoModel.existePorId(id);
+    const servidorExiste = await embarcadoModel.existePorId(embarcadoId);
     if (!servidorExiste) {
       return res
         .status(404)
@@ -190,7 +191,10 @@ async function editar(req, res) {
       const enderecoMacEmUso =
         await embarcadoModel.existePorEnderecoMac(endereco_mac);
       if (enderecoMacEmUso) {
-        const servidorAtual = await embarcadoModel.buscarPorId(empresa_id, id);
+        const servidorAtual = await embarcadoModel.buscarPorId(
+          empresa_id,
+          embarcadoId,
+        );
 
         if (servidorAtual[0].endereco_mac !== endereco_mac) {
           return res.status(409).json({
@@ -205,7 +209,7 @@ async function editar(req, res) {
     if (!isMissing(apelido)) camposParaAtualizar.apelido = apelido;
     if (!isMissing(modelo)) camposParaAtualizar.modelo = modelo;
 
-    await embarcadoModel.editar(empresa_id, id, camposParaAtualizar);
+    await embarcadoModel.editar(empresa_id, embarcadoId, camposParaAtualizar);
 
     res.status(200).json({ message: "Servidor atualizado com sucesso!" });
   } catch (error) {
@@ -220,7 +224,7 @@ async function editar(req, res) {
 
 async function remover(req, res) {
   const { empresa_id, nivel_acesso } = req.usuario;
-  const { id } = req.params;
+  const { embarcadoId } = req.params;
 
   // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
   if (nivel_acesso > 1) {
@@ -235,7 +239,7 @@ async function remover(req, res) {
       .json({ message: "ID da Empresa não foi passado na requisição." });
   }
 
-  if (isMissing(id)) {
+  if (isMissing(embarcadoId)) {
     return res
       .status(400)
       .send({ message: "ID da empresa não foi passado na requisição." });
@@ -249,14 +253,14 @@ async function remover(req, res) {
         .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
     }
 
-    const servidorExiste = await embarcadoModel.existePorId(id);
+    const servidorExiste = await embarcadoModel.existePorId(embarcadoId);
     if (!servidorExiste) {
       return res
         .status(404)
         .json({ message: "Nenhum Servidor encontrado para o ID informado." });
     }
 
-    await embarcadoModel.remover(empresa_id, id);
+    await embarcadoModel.remover(empresa_id, embarcadoId);
 
     res.status(200).send({ message: "Servidor removido com sucesso!" });
   } catch (error) {
