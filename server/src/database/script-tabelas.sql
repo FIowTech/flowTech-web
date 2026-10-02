@@ -287,6 +287,47 @@ CREATE PROCEDURE sp_cadastrar_usuario(
 END$$
 DELIMITER ;
 
+-- SPO4: Cadastra Embarcado com Endereço
+DELIMITER $$
+CREATE PROCEDURE sp_cadastrar_embarcado_com_endereco(
+	-- dados para cadastro do embarcado
+	IN in_empresa_id INT,
+    IN in_endereco_mac CHAR(17),
+    IN in_apelido VARCHAR(60),
+    IN in_modelo VARCHAR(60),
+    -- dados para o cadastro do endereco
+    IN in_cep CHAR(8), 
+    IN in_logradouro VARCHAR(120), 
+    IN in_bairro VARCHAR(60),
+    IN in_localidade VARCHAR(60), 
+    IN in_uf CHAR(2), 
+    IN in_numero VARCHAR(20),
+	IN in_complemento VARCHAR(60),
+    IN in_km VARCHAR(20), 
+    IN in_sentido VARCHAR(30),
+    IN in_lat DECIMAL(10, 4),
+    IN in_lon DECIMAL(10, 4)
+) BEGIN
+	-- Tratamento de Erro na Procedure
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Erro no Cadastro de Usuário via Código';
+	END;
+
+	-- Corpo da Procedure
+	START TRANSACTION;			
+		-- 1. Insert na tabela Endereco
+        INSERT INTO endereco(cep, logradouro, bairro, localidade, uf, numero, complemento, km, sentido, lat, lon)
+			VALUES(in_cep, in_logradouro, in_bairro, in_localidade, in_uf, in_numero, in_complemento, in_km, in_sentido, in_lat, in_lon);
+            
+		-- 2. Inset em Embarcado
+        INSERT INTO embarcado(empresa_id, endereco_id, endereco_mac, apelido, modelo)
+			VALUES(in_empresa_id, LAST_INSERT_ID(), in_endereco_mac, in_apelido, in_modelo);
+    COMMIT;
+END$$
+DELIMITER ;
+
 -- | INSERTS PADRÃO | --
 
 -- I01: Insere componentes monitorados pela aplicação
