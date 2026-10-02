@@ -3,27 +3,27 @@ const embarcadoController = require("../controllers/embarcadoController");
 
 const router = express.Router({ mergeParams: true });
 
-// === GET - BUSCA (TODOS) === //
+// === GET | Buscar Todos por Empresa === //
 router.get("/", function (req, res) {
   embarcadoController.buscar(req, res);
 });
 
-// === GET - BUSCA POR ID === //
+// === GET | Buscar por Id === //
 router.get("/:embarcadoId", function (req, res) {
   embarcadoController.buscarPorId(req, res);
 });
 
-// === POST - CRIAÇÃO === //
+// === POST | Cadastar === //
 router.post("/cadastrar", function (req, res) {
   embarcadoController.cadastrar(req, res);
 });
 
-// === PUT - ATUALIZAÇÃO === //
+// === PUT | Atualizar === //
 router.put("/:embarcadoId", function (req, res) {
   embarcadoController.editar(req, res);
 });
 
-// === DELETE - REMOÇÃO === //
+// === DELETE | Remover === //
 router.delete("/:embarcadoId", function (req, res) {
   embarcadoController.remover(req, res);
 });

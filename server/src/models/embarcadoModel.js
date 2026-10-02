@@ -2,7 +2,7 @@ const database = require("../database/config");
 
 function buscar(empresaId) {
   const instrucaoSql = `
-    SELECT * FROM servidor WHERE empresa_id = ${empresaId};
+    SELECT * FROM embarcado WHERE empresa_id = ${empresaId};
   `;
 
   console.log("[embarcadoModel] Executando a instrução SQL: \n" + instrucaoSql);
@@ -11,7 +11,7 @@ function buscar(empresaId) {
 
 function buscarPorId(empresaId, idEmbarcado) {
   const instrucaoSql = `
-    SELECT * FROM servidor 
+    SELECT * FROM embarcado 
     WHERE empresa_id = ${empresaId} AND id_embarcado = ${idEmbarcado};
   `;
 
@@ -19,12 +19,39 @@ function buscarPorId(empresaId, idEmbarcado) {
   return database.executar(instrucaoSql);
 }
 
-function cadastrar(empresaId, enderecoId, endereco_mac, apelido, modelo) {
-  const idEndereco = enderecoId || 1;
+function cadastrar(empresaId, endereco_mac, apelido, modelo, endereco) {
+  const {
+    cep,
+    logradouro,
+    bairro,
+    localidade,
+    uf,
+    numero,
+    complemento,
+    km,
+    sentido,
+    lat,
+    lon,
+  } = endereco;
 
   const instrucaoSql = `
-    INSERT INTO servidor(empresa_id, endereco_id, endereco_mac, apelido, modelo) 
-    VALUES (${empresaId}, '${idEndereco}', '${endereco_mac}', '${apelido}', '${modelo}');
+    CALL sp_cadastrar_embarcado_com_endereco(
+      ${empresaId},
+      '${endereco_mac}',
+      '${apelido}',
+      '${modelo}',
+      '${cep}', 
+      '${logradouro}', 
+      '${bairro}',
+      '${localidade}', 
+      '${uf}', 
+      '${numero}',
+      '${complemento ?? ""}',
+      '${km}', 
+      '${sentido}',
+      ${lat},
+      ${lon}
+    );
   `;
 
   console.log("[embarcadoModel] Executando a instrução SQL: \n" + instrucaoSql);
@@ -43,7 +70,7 @@ function editar(empresaId, idEmbarcado, campos = {}) {
     .join(", ");
 
   const instrucaoSql = `
-    UPDATE servidor SET ${camposTratados} 
+    UPDATE embarcado SET ${camposTratados} 
     WHERE empresa_id = ${empresaId} AND id_embarcado = ${idEmbarcado};
   `;
 
@@ -59,7 +86,7 @@ function remover(empresaId, idEmbarcado) {
   );
 
   const instrucaoSql = `
-    DELETE FROM servidor 
+    DELETE FROM embarcado 
     WHERE empresa_id = ${empresaId} AND id_embarcado = ${idEmbarcado};
   `;
 
@@ -67,9 +94,9 @@ function remover(empresaId, idEmbarcado) {
   return database.executar(instrucaoSql);
 }
 
-function existePorId(idEmbarcado) {
+async function existePorId(idEmbarcado) {
   const instrucaoSql = `
-    SELECT COUNT(*) FROM servidor WHERE id_embarcado = ${idEmbarcado};
+    SELECT COUNT(*) FROM embarcado WHERE id_embarcado = ${idEmbarcado};
   `;
 
   console.log("Executando a instrução SQL: \n" + instrucaoSql);
@@ -79,9 +106,9 @@ function existePorId(idEmbarcado) {
     .then((result) => (result[0]["COUNT(*)"] !== 0 ? true : false));
 }
 
-function existePorEnderecoMac(endereco_mac) {
+async function existePorEnderecoMac(endereco_mac) {
   const instrucaoSql = `
-    SELECT COUNT(*) FROM servidor WHERE endereco_mac = '${endereco_mac}';
+    SELECT COUNT(*) FROM embarcado WHERE endereco_mac = '${endereco_mac}';
   `;
 
   console.log("Executando a instrução SQL: \n" + instrucaoSql);

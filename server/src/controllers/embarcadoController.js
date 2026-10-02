@@ -1,25 +1,18 @@
-const { isMissing } = require("../utils");
+const { isMissing, enderecoErrors } = require("../utils/validacao");
 const embarcadoModel = require("../models/embarcadoModel");
 const empresaModel = require("../models/empresaModel");
 
 async function buscar(req, res) {
   const { empresa_id } = req.usuario;
 
-  if (isMissing(empresa_id)) {
-    return res
-      .status(400)
-      .json({ message: "ID da Empresa não foi passado na requisição." });
-  }
-
   try {
-    const empresaExiste = await empresaModel.existerPorId(empresa_id);
-    if (!empresaExiste) {
-      return res
-        .status(404)
-        .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
-    }
-
     const result = await embarcadoModel.buscar(empresa_id);
+    if (result.length === 0) {
+      return res.status(200).send({
+        message: "Nenhum Servidor encontrado para a Empresa solicitada.",
+        count: 0,
+      });
+    }
 
     res.status(200).json({
       message: "Servidores encontrados para a Empresa solicitada.",
@@ -36,39 +29,31 @@ async function buscar(req, res) {
   }
 }
 
-async function buscarPorID(req, res) {
+async function buscarPorId(req, res) {
   const { empresa_id } = req.usuario;
-  const { id } = req.params;
+  const { embarcadoId } = req.params;
 
-  if (isMissing(empresa_id)) {
-    res
-      .status(400)
-      .json({ message: "ID da Empresa não foi passado na requisição." });
-    return;
-  }
-
-  if (isMissing(id)) {
+  if (isMissing(embarcadoId)) {
     return res
       .status(400)
       .json({ message: "ID do Servidor não foi passado na requisição." });
   }
 
   try {
-    const empresaExiste = await empresaModel.existerPorId(empresa_id);
-    if (!empresaExiste) {
-      return res
-        .status(404)
-        .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
-    }
-
-    const servidorExiste = await embarcadoModel.existerPorId(id);
+    const servidorExiste = await embarcadoModel.existePorId(embarcadoId);
     if (!servidorExiste) {
       return res
         .status(404)
         .json({ message: "Nenhum Servidor encontrado para o ID informado." });
     }
 
-    const result = await embarcadoModel.buscarPorID(empresa_id, id);
+    const result = await embarcadoModel.buscarPorId(empresa_id, embarcadoId);
+    if (result.length === 0) {
+      return res.status(200).send({
+        message: "Nenhum Servidor encontrado para a Empresa solicitada.",
+        count: 0,
+      });
+    }
 
     res.status(200).json({
       message: "Servidor encontrado com sucesso.",
@@ -86,7 +71,7 @@ async function buscarPorID(req, res) {
 
 async function cadastrar(req, res) {
   const { empresa_id, nivel_acesso } = req.usuario;
-  const { endereco_id, endereco_mac, apelido, modelo } = req.body;
+  const { endereco, endereco_mac, apelido, modelo } = req.body;
 
   // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
   if (nivel_acesso > 1) {
@@ -101,10 +86,17 @@ async function cadastrar(req, res) {
       .json({ message: "ID da Empresa não foi passado na requisição." });
   }
 
-  if (isMissing(endereco_id)) {
+  if (isMissing(endereco)) {
     return res
       .status(400)
-      .json({ message: "O campo 'endereco_id' está faltando." });
+      .json({ message: "O campo 'endereco' está faltando." });
+  }
+
+  const errosEndereco = enderecoErrors(endereco, "embarcado");
+  if (errosEndereco.length != 0) {
+    return res.status(400).json({
+      message: `O campo 'endereco' possui os seguintes campos inválidos e/ou faltando: ${errosEndereco.join(", ")}.`,
+    });
   }
 
   if (isMissing(endereco_mac)) {
@@ -125,7 +117,7 @@ async function cadastrar(req, res) {
 
   try {
     // 1. Verifica se Empresa informada existe de fato
-    const empresaExiste = await empresaModel.existerPorId(empresa_id);
+    const empresaExiste = await empresaModel.existePorId(empresa_id);
     if (!empresaExiste) {
       return res
         .status(404)
@@ -144,10 +136,10 @@ async function cadastrar(req, res) {
     // 2. Inicia registro de Servidor
     await embarcadoModel.cadastrar(
       empresa_id,
-      endereco_id,
       endereco_mac,
       apelido,
       modelo,
+      endereco,
     );
 
     res.status(201).json({ message: "Servidor cadastrado com sucesso!" });
@@ -180,14 +172,14 @@ async function editar(req, res) {
   }
 
   try {
-    const empresaExiste = await empresaModel.existerPorId(empresa_id);
+    const empresaExiste = await empresaModel.existePorId(empresa_id);
     if (!empresaExiste) {
       return res
         .status(404)
         .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
     }
 
-    const servidorExiste = await embarcadoModel.existerPorId(id);
+    const servidorExiste = await embarcadoModel.existePorId(id);
     if (!servidorExiste) {
       return res
         .status(404)
@@ -198,7 +190,7 @@ async function editar(req, res) {
       const enderecoMacEmUso =
         await embarcadoModel.existePorEnderecoMac(endereco_mac);
       if (enderecoMacEmUso) {
-        const servidorAtual = await embarcadoModel.buscarPorID(empresa_id, id);
+        const servidorAtual = await embarcadoModel.buscarPorId(empresa_id, id);
 
         if (servidorAtual[0].endereco_mac !== endereco_mac) {
           return res.status(409).json({
@@ -250,14 +242,14 @@ async function remover(req, res) {
   }
 
   try {
-    const empresaExiste = await empresaModel.existerPorId(empresa_id);
+    const empresaExiste = await empresaModel.existePorId(empresa_id);
     if (!empresaExiste) {
       return res
         .status(404)
         .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
     }
 
-    const servidorExiste = await embarcadoModel.existerPorId(id);
+    const servidorExiste = await embarcadoModel.existePorId(id);
     if (!servidorExiste) {
       return res
         .status(404)
@@ -280,7 +272,7 @@ async function remover(req, res) {
 module.exports = {
   cadastrar,
   buscar,
-  buscarPorID,
+  buscarPorId,
   remover,
   editar,
 };

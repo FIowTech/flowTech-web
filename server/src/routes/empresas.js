@@ -1,5 +1,6 @@
 const express = require("express");
 const empresaController = require("../controllers/empresaController");
+const embarcadoRouter = require("./embarcados");
 
 const router = express.Router();
 
@@ -16,5 +17,7 @@ router.get("/", function (req, res) {
   */
   empresaController.buscarPorId(req, res);
 });
+
+router.use("/embarcados", embarcadoRouter);
 
 module.exports = router;
