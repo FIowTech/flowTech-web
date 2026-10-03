@@ -1,4 +1,5 @@
 import { EmpresaField } from "./field";
+import { RevisaoField } from "./field";
 import { ButtonCadastrar } from "./field";
 import { ButtonProx } from "./field";
 import { ButtonVoltar } from "./field";
@@ -86,50 +87,73 @@ export function EmpresaEtapa2() {
 
 export function EmpresaEtapa3() {
     return (
-        <form className="mx-auto w-full max-w-md">
-            <h1 className="relative top-1 text-center font-black text-2xl">
-                Cadastro de empresas
-            </h1>
+        <form className="space-y-4 mx-auto w-full max-w-md">
+            <h1 className="relative top-1 font-black text-2xl">Registro de Empresas</h1>
+            <p className="mb-10 text-sm text-slate-600">Cadastro de empresas parceiras.</p>
 
-            <div className="mt-8 mb-5 flex items-center justify-center text-sm font-bold">
-                <span className="flex items-center">
-                    <span className="mr-1 text-lg">✓</span>
-                    empresa
-                </span>
+            <div className="grid grid-cols-2 gap-5">
+                <div>
 
-                <span className="mx-2 h-px w-8 bg-black" />
+                    <div className="space-y-3">
 
-                <span className="flex items-center">
-                    <span className="mr-1 text-lg">✓</span>
-                    responsável
-                </span>
+                        <RevisaoField
+                        label="CNPJ"
+                        value=""
+                        text=""
+                        />
 
-                <span className="mx-2 h-px w-8 bg-black" />
+                        <RevisaoField
+                        label="Razão Social"
+                        value=""
+                        text=""
+                        />
 
-                <span className="text-lg">●</span>
-                <span className="ml-1">revisão</span>
-            </div>
+                        <RevisaoField
+                        label="Nome Fantasia"
+                        value=""
+                        text=""
+                        />
 
-            <div className="border border-black p-4">
-                <div className="grid grid-cols-2 gap-y-1 text-sm">
-                    <div className="font-semibold">Empresa</div>
-                    <div className="font-semibold">Responsável</div>
+                        <RevisaoField
+                        label="E-mail"
+                        value=""
+                        text=""
+                        />
+                    </div>
+                </div>
 
-                    <div className="mt-3">cnpj</div>
-                    <div className="mt-3">nome</div>
+                <div>
 
-                    <div>razão social</div>
-                    <div>telefone</div>
+                    <div className="space-y-3">
 
-                    <div>nome fantasia</div>
-                    <div>email</div>
+                        <RevisaoField
+                        label="Nome"
+                        value=""
+                        text=""
+                        />
 
-                    <div>email</div>
-                    <div>senha provisória</div>
+                        <RevisaoField
+                        label="Telefone"
+                        value=""
+                        text=""
+                        />
+
+                        <RevisaoField
+                        label="E-mail"
+                        value=""
+                        text=""
+                        />
+
+                        <RevisaoField
+                        label="Senha"
+                        value=""
+                        text=""
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-5 flex items-center justify-between">
+            <div className="mt-5 flex justify-between">
                 <ButtonVoltar />
                 <ButtonCadastrar />
             </div>

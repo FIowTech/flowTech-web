@@ -6,7 +6,7 @@ export default function EmpresaPage() {
     return (
         <>
             <main className="flex min-h-screen bg-white items-center justify-center px-4 py-8">
-                <EmpresaEtapa1 />
+                <EmpresaEtapa2 />
             </main>
         </>
     )
