@@ -19,31 +19,58 @@ export function EmpresaField({ label, value, type, placeholder }) {
     )
 }
 
-export function Button() {
+export function ButtonCadastrar() {
     return (
-        <button
-            type="submit"
-            className="mt-8 h-14 flex w-3/4 mx-auto items-center justify-center gap-2 rounded-[9px] bg-emerald-900 py-3.5 text-[13px] font-bold uppercase tracking-wide text-white transition hover:bg-emerald-800 active:translate-y-px"
-        >
-            CADASTRAR EMPRESA
-        </button>
-    )
-}
-
-export function Button2() {
-    return (
-        <div className="flex mt-5 justify-end">
+        <div className="flex justify-end">
             <button
                 type="submit"
                 className="group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900"
             >
-                Cadastrar
+                Próxima
                 <span
                     aria-hidden="true"
                     className="text-2xl transition-transform group-hover:translate-x-1 mb-0.5"
                 >
                     ›
                 </span>
+            </button>
+        </div>
+    )
+}
+
+export function ButtonProx() {
+    return (
+        <div className="flex justify-end">
+            <button
+                type="submit"
+                className="group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900"
+            >
+                Próximo
+                <span
+                    aria-hidden="true"
+                    className="text-2xl transition-transform group-hover:translate-x-1 mb-0.5"
+                >
+                    ›
+                </span>
+            </button>
+        </div>
+    )
+}
+
+export function ButtonVoltar() {
+    return (
+        <div className="flex justify-end">
+            <button
+                type="submit"
+                className="group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900"
+            >
+                <span
+                    aria-hidden="true"
+                    className="text-2xl transition-transform group-hover:-translate-x-1 mb-0.5"
+                >
+                    ‹
+                </span>
+                Anterior
             </button>
         </div>
     )
