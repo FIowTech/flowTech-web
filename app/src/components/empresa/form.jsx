@@ -1,162 +1,146 @@
-import { EmpresaField } from "./field";
-import { RevisaoField } from "./field";
-import { ButtonCadastrar } from "./field";
-import { ButtonProx } from "./field";
-import { ButtonVoltar } from "./field";
+import { useEmpresaStore } from "../../store/empresa-store";
+import {
+  ButtonCadastrar,
+  ButtonProx,
+  ButtonVoltar,
+  EmpresaField,
+  RevisaoField,
+} from "./field";
 
 export function EmpresaEtapa1() {
-    return (
-        <form className="space-y-4 mx-auto w-full max-w-md">
-            <h1 className="relative top-1 font-black text-2xl">Registro de Empresas</h1>
-            <p className="mb-10 text-sm text-slate-600">Cadastro de empresas parceiras.</p>
+  const {
+    campos,
+    changeCnpj,
+    changeRazaoSocial,
+    changeNomeFantasia,
+    changeEmailEmp,
+  } = useEmpresaStore();
 
+  return (
+    <form className="space-y-4 mx-auto w-full max-w-md">
+      <h1 className="relative top-1 font-black text-2xl">
+        Registro de Empresas
+      </h1>
+      <p className="mb-10 text-sm text-slate-600">
+        Cadastro de empresas parceiras.
+      </p>
 
-            <EmpresaField
-                label="CNPJ"
-                value="cnpj"
-                type="text"
-                placeholder="00.000.000/0000-00"
-            />
+      <EmpresaField
+        label="CNPJ"
+        value={campos.cnpj}
+        onChange={(e) => changeCnpj(e.target.value)}
+        type="text"
+        placeholder="00.000.000/0000-00"
+      />
 
-            <EmpresaField
-                label="Razão Social"
-                value="razaosocial"
-                type="text"
-                placeholder="Ex.: Bobao Dog Ltda."
-            />
+      <EmpresaField
+        label="Razão Social"
+        value={campos.razaoSocial}
+        onChange={(e) => changeRazaoSocial(e.target.value)}
+        type="text"
+        placeholder="Ex.: Bobao Dog Ltda."
+      />
 
-            <EmpresaField
-                label="Nome Fantasia"
-                value="nomefantasia"
-                type="text"
-                placeholder="Ex.: Dogão do Bobão"
-            />
+      <EmpresaField
+        label="Nome Fantasia"
+        value={campos.nomeFantasia}
+        onChange={(e) => changeNomeFantasia(e.target.value)}
+        type="text"
+        placeholder="Ex.: Dogão do Bobão"
+      />
 
-            <EmpresaField
-                label="E-mail"
-                value="emailEmp"
-                type="email"
-                placeholder="email@exemplo.com"
-            />
-            <ButtonProx />
-        </form>
-    )
+      <EmpresaField
+        label="E-mail"
+        value={campos.emailEmp}
+        onChange={(e) => changeEmailEmp(e.target.value)}
+        type="email"
+        placeholder="email@exemplo.com"
+      />
+      <ButtonProx />
+    </form>
+  );
 }
 
 export function EmpresaEtapa2() {
-    return (
-        <form className="space-y-4 mx-auto w-full max-w-md">
-            <h1 className="relative top-1 font-black text-2xl">Registro de Empresas</h1>
-            <p className="mb-10 text-sm text-slate-600">Cadastro de empresas parceiras.</p>
+  const { campos, changeNome, changeEmailResp, changeSenha } =
+    useEmpresaStore();
 
-            <EmpresaField
-                label="Nome"
-                value="nomeResp"
-                type="text"
-                placeholder="Ex.: João da Silva"
-            />
+  return (
+    <form className="space-y-4 mx-auto w-full max-w-md">
+      <h1 className="relative top-1 font-black text-2xl">
+        Registro de Empresas
+      </h1>
+      <p className="mb-10 text-sm text-slate-600">
+        Cadastro de empresas parceiras.
+      </p>
 
-            <EmpresaField
-                label="Telefone"
-                value="telefone"
-                type="text"
-                placeholder="(00) 0000-00000"
-            />
+      <EmpresaField
+        label="Nome"
+        value={campos.nome}
+        onChange={(e) => changeNome(e.target.value)}
+        type="text"
+        placeholder="Ex.: João da Silva"
+      />
 
-            <EmpresaField
-                label="E-mail"
-                value="emailResp"
-                type="email"
-                placeholder="email@exemplo.com"
-            />
+      <EmpresaField
+        label="E-mail"
+        value={campos.emailResp}
+        onChange={(e) => changeEmailResp(e.target.value)}
+        type="email"
+        placeholder="email@exemplo.com"
+      />
 
-            <EmpresaField
-                label="Senha Provisória"
-                value="senha"
-                type="password"
-                placeholder="••••••••"
-            />
+      <EmpresaField
+        label="Senha"
+        value={campos.senha}
+        onChange={(e) => changeSenha(e.target.value)}
+        type="password"
+        placeholder="••••••••"
+      />
 
-            <div className="flex justify-between">
-                <ButtonVoltar />
-                <ButtonProx />
-            </div>
-        </form>
-    )
+      <div className="flex justify-between">
+        <ButtonVoltar />
+        <ButtonProx />
+      </div>
+    </form>
+  );
 }
 
 export function EmpresaEtapa3() {
-    return (
-        <form className="space-y-4 mx-auto w-full max-w-md">
-            <h1 className="relative top-1 font-black text-2xl">Registro de Empresas</h1>
-            <p className="mb-10 text-sm text-slate-600">Cadastro de empresas parceiras.</p>
+  const campos = useEmpresaStore((state) => state.campos);
 
-            <div className="grid grid-cols-2 gap-5">
-                <div>
+  return (
+    <form className="space-y-4 mx-auto w-full max-w-md">
+      <h1 className="relative top-1 font-black text-2xl">
+        Registro de Empresas
+      </h1>
+      <p className="mb-10 text-sm text-slate-600">
+        Cadastro de empresas parceiras.
+      </p>
 
-                    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-5">
+        <div>
+          <div className="space-y-3">
+            <RevisaoField label="CNPJ" text={campos.cnpj} />
+            <RevisaoField label="Razão Social" text={campos.razaoSocial} />
+            <RevisaoField label="Nome Fantasia" text={campos.nomeFantasia} />
+            <RevisaoField label="E-mail" text={campos.emailEmp} />
+          </div>
+        </div>
 
-                        <RevisaoField
-                        label="CNPJ"
-                        value=""
-                        text=""
-                        />
+        <div>
+          <div className="space-y-3">
+            <RevisaoField label="Nome" text={campos.nome} />
+            <RevisaoField label="E-mail" text={campos.emailResp} />
+            <RevisaoField label="Senha" text={campos.senha} />
+          </div>
+        </div>
+      </div>
 
-                        <RevisaoField
-                        label="Razão Social"
-                        value=""
-                        text=""
-                        />
-
-                        <RevisaoField
-                        label="Nome Fantasia"
-                        value=""
-                        text=""
-                        />
-
-                        <RevisaoField
-                        label="E-mail"
-                        value=""
-                        text=""
-                        />
-                    </div>
-                </div>
-
-                <div>
-
-                    <div className="space-y-3">
-
-                        <RevisaoField
-                        label="Nome"
-                        value=""
-                        text=""
-                        />
-
-                        <RevisaoField
-                        label="Telefone"
-                        value=""
-                        text=""
-                        />
-
-                        <RevisaoField
-                        label="E-mail"
-                        value=""
-                        text=""
-                        />
-
-                        <RevisaoField
-                        label="Senha"
-                        value=""
-                        text=""
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-5 flex justify-between">
-                <ButtonVoltar />
-                <ButtonCadastrar />
-            </div>
-        </form>
-    );
+      <div className="mt-5 flex justify-between">
+        <ButtonVoltar />
+        <ButtonCadastrar />
+      </div>
+    </form>
+  );
 }
