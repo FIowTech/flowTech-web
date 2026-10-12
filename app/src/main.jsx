@@ -1,50 +1,29 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
-import App from "./App.jsx";
 import "./index.css";
-import EmpresaPage from "./pages/empresa-page.jsx";
-import LoginPage from "./pages/login-page.jsx";
+import EmpresaPage from "./pages/empresa-page";
+import HomePage from "./pages/home-page";
+import LandingPage from "./pages/landing-page";
+import LoginPage from "./pages/login-page";
+import { useAuth } from "./store/auth-store";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route index element={<App />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/empresa" element={<EmpresaPage />} />
-      </Routes>
+      <App />
     </BrowserRouter>
   </StrictMode>,
 );
 
-/* Exemplo de uso React-Router
-docs: https://reactrouter.com/start/declarative/routing
+export function App() {
+  const isUserLoggedIn = useAuth((state) => state.isLoggedIn);
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Routes>
-      // Rota index
-        <Route index element={<App />} />
-
-      // Layout - p/ compartilhar UI entre páginas distintas
-        <Route element={<AuthLayout/>}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </StrictMode>,
-);
-
-function AuthLayout() {
   return (
-    <div>
-      //... (qualquer estrutura JSX)
-      <Outlet/> // Outlet - serve para renderizar a UI dinamicamente com base na ROTA
-    </div>
-  )
+    <Routes>
+      <Route index element={isUserLoggedIn ? <HomePage /> : <LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/empresa" element={<EmpresaPage />} />
+    </Routes>
+  );
 }
-
-*/

@@ -1,19 +1,16 @@
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
+import { Button } from "../ui/button";
 
 export function Navbar() {
   const navitems = [
-    {
-      text: "Nossa Missão",
-      href: "#nossa_missao",
-      icon: null,
-    },
-    { text: "Nossa Solução", href: "#nossa_solucao", icon: null },
-    { text: "Recursos", href: "#recursos", icon: null },
+    { text: "Nossa Missão", href: "#nossa_missao" },
+    { text: "Nossa Solução", href: "#nossa_solucao" },
+    { text: "Recursos", href: "#recursos" },
   ];
 
   return (
-    <header className="top-0 z-20 flex items-center justify-between border-b border-line bg-paper/90 px-6 py-4 backdrop-blur sm:px-10 lg:px-16">
+    <header className="top-0 z-20 flex items-center justify-between border-b bg-background px-6 py-4 sm:px-10 lg:px-16">
       <span className="text-lg font-bold tracking-tight text-ink">
         FlowTech
       </span>
@@ -28,25 +25,23 @@ export function Navbar() {
           />
         ))}
       </nav>
-      <Link
-        to="/login"
-        className="flex items-center gap-2 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#255840]"
-      >
-        Ver plataforma
-        <ArrowRightIcon size={16} weight="bold" />
+      <Link to="/login">
+        <Button className="p-4 hover:gap-2 hover:cursor-pointer">
+          Ver plataforma
+          <ArrowRightIcon size={16} weight="bold" />
+        </Button>
       </Link>
     </header>
-
   );
 }
 
-function NavItem({ href, text, icon }) {
+function NavItem({ href, text }) {
   return (
     <a
       href={href}
-      className="flex items-center gap-2 rounded px-3 py-2 transition duration-150 ease-in-out hover:bg-green-500 sm:px-4"
+      className="bg-transparent hover:bg-primary hover:text-primary-foreground transition-all py-1 px-2 rounded-sm"
     >
-      <p>{text}</p> {icon}
+      <p>{text}</p>
     </a>
   );
 }
