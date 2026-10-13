@@ -56,8 +56,7 @@ async function autenticar(req, res) {
 
     res.status(200).send({
       message: "Usuário logado com sucesso!",
-      redirectTo:
-        usuario.nivel_acesso === 0 ? "/empresas/cadastrar" : "/dashboard",
+      redirectTo: usuario.nivel_acesso === 0 ? "/cadastrar/empresa" : "/",
       usuario: {
         nome: usuario.nome,
         email: usuario.email,
