@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 // Formato esperado para usuario:
 // {
@@ -9,66 +10,101 @@ import { create } from "zustand";
 //   email: string,
 //   nivel_acesso: 0 | 1 | 2
 // }
-export const useAuth = create((set) => ({
-  usuario: null,
-  isLoggedIn: false,
-  isPending: false,
-  error: null,
-  login: (credentials) => login(credentials, set),
-  logout: () => logout(set),
-}));
+
+export const useAuth = create()(
+  persist(
+    (set) => ({
+      usuario: null,
+      isLoggedIn: false,
+      isPending: false,
+      error: null,
+
+      login: (credentials) => login(credentials, set),
+      logout: () => logout(set),
+    }),
+    {
+      name: "auth-storage",
+      storage: createJSONStorage(() => sessionStorage),
+    },
+  ),
+);
 
 async function login(credentials, set) {
   const { email, senha } = credentials;
 
-  try {
-    set(() => ({ isPending: true, error: null }));
+  set({ isPending: true, error: null });
 
+  try {
     const response = await fetch(
       `${import.meta.env.VITE_BASE_API_URL}/usuarios/login`,
       {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, senha }),
       },
     );
 
     const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Não foi possível realizar o login.");
+    }
 
     // Sucesso em login:
-    set(() => ({ usuario: data.usuario, isLoggedIn: true, error: null }));
-    console.log(data.message);
+    set({ usuario: data.usuario, isLoggedIn: true, error: null });
+
+    return { success: true, redirectTo: data.redirectTo };
   } catch (error) {
     // Fracasso em login:
-    set(() => ({ error }));
-    console.error(error);
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Erro inesperado ao realizar o login.";
+
+    set({ usuario: null, isLoggedIn: false, error: message });
+
+    return { success: false, error: message };
   } finally {
-    set(() => ({ isPending: false }));
+    set({ isPending: false });
   }
 }
 
 async function logout(set) {
-  try {
-    set(() => ({ isPending: true, error: null }));
+  set({ isPending: true, error: null });
 
+  try {
     const response = await fetch(
       `${import.meta.env.VITE_BASE_API_URL}/usuarios/sair`,
-      {
-        method: "POST",
-      },
+      { method: "POST", credentials: "include" },
     );
 
     const data = await response.json();
 
-    // Sucesso em logout:
+    if (!response.ok) {
+      throw new Error(
+        typeof data.message === "string" && data.message.trim()
+          ? data.message
+          : "Não foi possível realizar o logout.",
+      );
+    }
 
-    console.log(data.message);
-    set(() => ({ usuario: null, isLoggedIn: false, error: null }));
+    set({
+      usuario: null,
+      isLoggedIn: false,
+      error: null,
+    });
+
+    return { success: true };
   } catch (error) {
-    // Fracasso em login:
-    set(() => ({ error }));
-    console.error(error);
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Erro inesperado ao realizar o logout.";
+
+    set({ error: message });
+
+    return { success: false, error: message };
   } finally {
-    set(() => ({ isPending: false }));
+    set({ isPending: false });
   }
 }
