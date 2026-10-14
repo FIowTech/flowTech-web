@@ -98,7 +98,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Card size="sm" className="flex-row items-center justify-between px-4">
+      <Card className="bg-background flex-row items-center justify-between px-4">
         <div>
           <span className="block text-xs text-muted-foreground">
             Olá, {user?.nome ?? "usuário"}!
