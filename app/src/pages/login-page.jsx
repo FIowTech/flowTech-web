@@ -42,8 +42,18 @@ export default function LoginPage() {
   const handleSenhaChange = (e) =>
     setCredentials((prev) => ({ ...prev, senha: e.target.value }));
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(credentials.email);
+
+  const senhaRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#.])[A-Za-z\d@$!%*?&#.]{8,}$/;
+  const isSenhaValid = senhaRegex.test(credentials.senha);
+
+  const isFormValid = isEmailValid && isSenhaValid;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid || isLoggedIn) return;
 
     const result = await login(credentials);
 
@@ -126,7 +136,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isPending || !credentials.email || !credentials.senha}
+              disabled={isPending || !isFormValid}
             >
               {isPending ? (
                 <span className="flex items-center space-x-2">

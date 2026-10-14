@@ -55,8 +55,22 @@ export default function RegisterPage() {
   const handleSenhaChange = (e) =>
     setCredentials((prev) => ({ ...prev, senha: e.target.value }));
 
+  const isCodigoValid = credentials.codigoAcesso.length === 12;
+  const isNomeValid = credentials.nome.trim().length >= 3;
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test(credentials.email);
+
+  const senhaRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const isSenhaValid = senhaRegex.test(credentials.senha);
+
+  const isFormValid =
+    isCodigoValid && isNomeValid && isEmailValid && isSenhaValid;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid && isLoggedIn) return;
 
     const result = await cadastrar(credentials);
 
@@ -81,7 +95,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isLoggedIn) navigate("/", { replace: true });
-  });
+  }, [isLoggedIn, navigate]);
 
   return (
     <div className="min-w-lg flex flex-col items-center space-y-12">
@@ -180,13 +194,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={
-                isPending ||
-                !credentials.codigoAcesso ||
-                !credentials.nome ||
-                !credentials.email ||
-                !credentials.senha
-              }
+              disabled={isPending || !isFormValid}
             >
               {isPending ? (
                 <span className="flex items-center space-x-2">
