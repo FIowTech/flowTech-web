@@ -5,7 +5,7 @@ import {
 } from "@/components/dashboard/resumo-card";
 import { ServidorBusca } from "@/components/dashboard/servidor-busca";
 import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
-import { Sidebar } from "@/components/dashboard/sidebar";
+import { Relogio } from "@/components/relogio";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/store/auth-store";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
@@ -96,83 +96,64 @@ export default function HomePage() {
     (servidor) => servidor.id_embarcado === selecionadoId,
   );
 
-  const dataAtual = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date());
-
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-
-      <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-6">
-        <Card size="sm" className="flex-row items-center justify-between px-4">
-          <div>
-            <span className="block text-xs text-muted-foreground">
-              Olá, {user?.nome ?? "usuário"}!
-            </span>
-
-            <h1 className="font-heading text-xl font-semibold">
-              {empresaNome}
-            </h1>
-          </div>
-
-          <span className="rounded-md bg-secondary px-2 py-1 font-mono text-xs">
-            {dataAtual}
+    <>
+      <Card size="sm" className="flex-row items-center justify-between px-4">
+        <div>
+          <span className="block text-xs text-muted-foreground">
+            Olá, {user?.nome ?? "usuário"}!
           </span>
-        </Card>
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <ResumoCard
-            titulo="Situação Embarcados"
-            icon={HardDrivesIcon}
-            atualizadoEm={atualizadoEm}
-          >
-            <StatusCount status="verde" quantidade={resumoEmbarcados.verde} />
-            <StatusCount
-              status="amarelo"
-              quantidade={resumoEmbarcados.amarelo}
-            />
-            <StatusCount
-              status="vermelho"
-              quantidade={resumoEmbarcados.vermelho}
-            />
-            <ResumoTotal total={resumoEmbarcados.total} />
-          </ResumoCard>
+          <h1 className="font-heading text-xl font-semibold">{empresaNome}</h1>
+        </div>
 
-          <ResumoCard
-            titulo="Alertas e Notificações"
-            icon={BellIcon}
-            atualizadoEm={atualizadoEm}
-          >
-            <StatusCount status="amarelo" quantidade={resumoAlertas.amarelo} />
-            <StatusCount
-              status="vermelho"
-              quantidade={resumoAlertas.vermelho}
-            />
-            <ResumoTotal total={resumoAlertas.total} />
-          </ResumoCard>
+        <Relogio />
+      </Card>
 
-          <ResumoCard
-            titulo="Capturas Recebidas/Esperadas"
-            icon={CameraIcon}
-            atualizadoEm={atualizadoEm}
-          >
-            {resumoCapturas.recebidas} / {resumoCapturas.esperadas}
-            <span className="text-xs font-normal text-muted-foreground">
-              de {resumoCapturas.porticos} pórticos
-            </span>
-          </ResumoCard>
-        </section>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ResumoCard
+          titulo="Situação Embarcados"
+          icon={HardDrivesIcon}
+          atualizadoEm={atualizadoEm}
+        >
+          <StatusCount status="verde" quantidade={resumoEmbarcados.verde} />
+          <StatusCount status="amarelo" quantidade={resumoEmbarcados.amarelo} />
+          <StatusCount
+            status="vermelho"
+            quantidade={resumoEmbarcados.vermelho}
+          />
+          <ResumoTotal total={resumoEmbarcados.total} />
+        </ResumoCard>
 
-        <section className="flex flex-1 flex-col gap-4 lg:flex-row">
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <ServidorBusca value={busca} onChange={handleBuscaChange} />
-          </div>
+        <ResumoCard
+          titulo="Alertas e Notificações"
+          icon={BellIcon}
+          atualizadoEm={atualizadoEm}
+        >
+          <StatusCount status="amarelo" quantidade={resumoAlertas.amarelo} />
+          <StatusCount status="vermelho" quantidade={resumoAlertas.vermelho} />
+          <ResumoTotal total={resumoAlertas.total} />
+        </ResumoCard>
 
-          <ServidorDetalhes servidor={selecionado} />
-        </section>
-      </main>
-    </div>
+        <ResumoCard
+          titulo="Capturas Recebidas/Esperadas"
+          icon={CameraIcon}
+          atualizadoEm={atualizadoEm}
+        >
+          {resumoCapturas.recebidas} / {resumoCapturas.esperadas}
+          <span className="text-xs font-normal text-muted-foreground">
+            de {resumoCapturas.porticos} pórticos
+          </span>
+        </ResumoCard>
+      </section>
+
+      <section className="flex flex-1 flex-col gap-4 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <ServidorBusca value={busca} onChange={handleBuscaChange} />
+        </div>
+
+        <ServidorDetalhes servidor={selecionado} />
+      </section>
+    </>
   );
 }
