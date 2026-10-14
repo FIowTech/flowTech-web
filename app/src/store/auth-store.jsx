@@ -19,6 +19,7 @@ export const useAuth = create()(
       isPending: false,
       error: null,
 
+      cadastrar: (credentials) => cadastrar(credentials, set),
       login: (credentials) => login(credentials, set),
       logout: () => logout(set),
     }),
@@ -29,9 +30,43 @@ export const useAuth = create()(
   ),
 );
 
-async function login(credentials, set) {
-  const { email, senha } = credentials;
+async function cadastrar(credentials, set) {
+  const { codigoAcesso: codigo_acesso, nome, email, senha } = credentials;
 
+  set({ isPending: true, error: null });
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_BASE_API_URL}/usuarios/cadastrar`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo_acesso, nome, email, senha }),
+      },
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Não foi possível realizar o cadastro.");
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Erro inesperado ao realizar o cadastro.";
+
+    set({ error: message });
+
+    return { success: false, error: message };
+  } finally {
+    set({ isPending: false });
+  }
+}
+
+async function login(credentials, set) {
   set({ isPending: true, error: null });
 
   try {
@@ -41,7 +76,7 @@ async function login(credentials, set) {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ ...credentials }),
       },
     );
 

@@ -1,47 +1,210 @@
+import logoFlowtech from "@/assets/flow-icon-light.png";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { useAuth } from "@/store/auth-store";
-import { useEffect } from "react";
-import { useNavigate } from "react-router";
+import { EyeClosedIcon, EyeIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
 export default function RegisterPage() {
-  const isLoggedIn = useAuth((state) => state.isLoggedIn);
   const navigate = useNavigate();
+  const cadastrar = useAuth((state) => state.cadastrar);
+  const isPending = useAuth((state) => state.isPending);
+  const isLoggedIn = useAuth((state) => state.isLoggedIn);
 
-  const handleSubmit = (e) => {
+  const [credentials, setCredentials] = useState({
+    codigoAcesso: "",
+    nome: "",
+    email: "",
+    senha: "",
+  });
+
+  const [senhaVisible, setSenhaVisible] = useState(false);
+
+  const handleCodigoChange = (value) =>
+    setCredentials((prev) => ({ ...prev, codigoAcesso: value }));
+
+  const handleNomeChange = (e) =>
+    setCredentials((prev) => ({ ...prev, nome: e.target.value }));
+
+  const handleEmailChange = (e) =>
+    setCredentials((prev) => ({ ...prev, email: e.target.value }));
+
+  const handleSenhaChange = (e) =>
+    setCredentials((prev) => ({ ...prev, senha: e.target.value }));
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("HEYA!");
+
+    const result = await cadastrar(credentials);
+
+    if (!result.success) {
+      toast.add({
+        description: result.error,
+        type: "error",
+      });
+
+      return;
+    }
+
+    toast.add({
+      description: "Cadastro efetuado, redirecionando para Login",
+      type: "success",
+    });
+
+    navigate({ pathname: "/login", replace: true });
   };
+
+  const toggleSenhaVisible = () => setSenhaVisible((prev) => !prev);
 
   useEffect(() => {
     if (isLoggedIn) navigate("/", { replace: true });
   });
 
   return (
-    <div className="w-full max-w-[380px]">
-      <div className="mb-9 flex items-center gap-2 text-[16px] font-extrabold text-foreground">
-        FlowTech
+    <div className="min-w-lg flex flex-col items-center space-y-12">
+      <div className="flex items-center space-x-2">
+        <img src={logoFlowtech} alt="FlowTech Logo" className="w-12" />
+        <h2 className="text-4xl font-heading font-bold -ml-4 pt-2">lowTech</h2>
       </div>
 
-      <div>
-        <div className="mb-6">
-          <h2 className="mb-1.5 text-[23px] font-extrabold tracking-tight text-foreground">
-            Crie sua conta
-          </h2>
+      <form onSubmit={handleSubmit} className="w-full">
+        <Card className="bg-background">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">
+              Crie uma conta para entrar
+            </CardTitle>
+            <CardDescription>
+              Providencie credenciais para acessar o Vision Center da sua
+              Empresa. Você deve possuir um código de acesso fornecido por seu
+              superior.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              {/* Campo - Código de Acesso */}
+              <Field>
+                <FieldLabel htmlFor="cadastro-codigo">
+                  Código de Acesso
+                </FieldLabel>
+                <InputOTP
+                  id="cadastro-codigo"
+                  maxLength={12}
+                  value={credentials.codigoAcesso}
+                  onChange={handleCodigoChange}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                    <InputOTPSlot index={6} />
+                    <InputOTPSlot index={7} />
+                    <InputOTPSlot index={8} />
+                    <InputOTPSlot index={9} />
+                    <InputOTPSlot index={10} />
+                    <InputOTPSlot index={11} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </Field>
 
-          <span className="block text-[13.5px] text-muted-foreground">
-            Registre-se agora para poder acessar o Vision Center da sua Empresa.
-          </span>
-        </div>
+              {/* Campo - Nome */}
+              <Field>
+                <FieldLabel htmlFor="cadastro-email">Nome Completo</FieldLabel>
+                <Input
+                  id="cadastro-nome"
+                  type="text"
+                  value={credentials.nome}
+                  onChange={handleNomeChange}
+                  required
+                />
+              </Field>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Button
-            type="submit"
-            className="mt-1.5 w-full rounded-[9px] bg-primary py-3.5 text-[13px] font-bold text-primary-foreground transition hover:bg-primary-hover active:translate-y-px"
-          >
-            Registrar-se
-          </Button>
-        </form>
-      </div>
+              {/* Campo - Email */}
+              <Field>
+                <FieldLabel htmlFor="cadastro-email">E-mail</FieldLabel>
+                <Input
+                  id="cadastro-email"
+                  type="text"
+                  value={credentials.email}
+                  onChange={handleEmailChange}
+                  required
+                />
+              </Field>
+
+              {/* Campo - Senha */}
+              <Field>
+                <FieldLabel htmlFor="cadastro-senha">Senha</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="cadastro-senha"
+                    type={senhaVisible ? "text" : "password"}
+                    value={credentials.senha}
+                    onChange={handleSenhaChange}
+                    required
+                  />
+                  <InputGroupAddon align="block-right">
+                    <InputGroupButton size="icon" onClick={toggleSenhaVisible}>
+                      {senhaVisible ? <EyeClosedIcon /> : <EyeIcon />}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="flex flex-col items-end space-y-2 bg-background-light">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                isPending ||
+                !credentials.codigoAcesso ||
+                !credentials.nome ||
+                !credentials.email ||
+                !credentials.senha
+              }
+            >
+              {isPending ? (
+                <span className="flex items-center space-x-2">
+                  <Spinner /> Registrando
+                </span>
+              ) : (
+                "Registrar-se"
+              )}
+            </Button>
+            <p className="flex flex-row gap-1 text-xs">
+              Já possui uma conta?
+              <Link to="/login" className="text-primary-hover underline">
+                Entre aqui
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </form>
     </div>
   );
 }

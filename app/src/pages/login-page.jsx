@@ -1,12 +1,27 @@
+import logoFlowtech from "@/assets/flow-icon-light.png";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { useAuth } from "@/store/auth-store";
 import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -18,6 +33,7 @@ export default function LoginPage() {
     email: "",
     senha: "",
   });
+
   const [senhaVisible, setSenhaVisible] = useState(false);
 
   const handleEmailChange = (e) =>
@@ -55,80 +71,80 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="w-full max-w-[380px]">
-      <div className="mb-9 flex items-center gap-2 text-[16px] font-extrabold text-foreground">
-        FlowTech
+    <div className="min-w-lg flex flex-col items-center space-y-12">
+      <div className="flex items-center space-x-2">
+        <img src={logoFlowtech} alt="FlowTech Logo" className="w-12" />
+        <h2 className="text-4xl font-heading font-bold -ml-4 pt-2">lowTech</h2>
       </div>
 
-      <div>
-        <div className="mb-6">
-          <h2 className="mb-1.5 text-[23px] font-extrabold tracking-tight text-foreground">
-            Logue na sua conta
-          </h2>
+      <form onSubmit={handleSubmit} className="w-full">
+        <Card className="bg-background">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">
+              Seja bem-vindo de volta!
+            </CardTitle>
+            <CardDescription>
+              Insira suas credenciais para acessar o Vision Center da sua
+              Empresa.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              {/* Campo - Email */}
+              <Field>
+                <FieldLabel htmlFor="login-email">E-mail</FieldLabel>
+                <Input
+                  id="login-email"
+                  type="text"
+                  value={credentials.email}
+                  onChange={handleEmailChange}
+                  required
+                />
+              </Field>
 
-          <span className="block text-[13.5px] text-muted-foreground">
-            Faça login para acompanhar a saúde dos seus pórticos Free Flow.
-          </span>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">E-mail:</Label>
-
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={credentials.email}
-              onChange={handleEmailChange}
-              required
-              className="w-full rounded-[9px] border-input bg-background text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="senha">Senha:</Label>
-
-            <div className="relative">
-              <Input
-                id="senha"
-                name="senha"
-                type={senhaVisible ? "text" : "password"}
-                autoComplete="current-password"
-                value={credentials.senha}
-                onChange={handleSenhaChange}
-                required
-                className="w-full rounded-[9px] border-input bg-background pr-11 text-foreground placeholder:text-muted-foreground"
-              />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={toggleSenhaVisible}
-                className="absolute right-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                {senhaVisible ? <EyeClosedIcon /> : <EyeIcon />}
-              </Button>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isPending || !credentials.email || !credentials.senha}
-            className="mt-1.5 w-full rounded-[9px] bg-primary py-3.5 text-[13px] font-bold text-primary-foreground transition hover:bg-primary-hover active:translate-y-px"
-          >
-            {isPending ? (
-              <span className="flex items-center space-x-2">
-                <Spinner /> Entrando
-              </span>
-            ) : (
-              "Entrar"
-            )}
-          </Button>
-        </form>
-      </div>
+              {/* Campo - Senha */}
+              <Field>
+                <FieldLabel htmlFor="login-senha">Senha</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="login-senha"
+                    type={senhaVisible ? "text" : "password"}
+                    value={credentials.senha}
+                    onChange={handleSenhaChange}
+                    required
+                  />
+                  <InputGroupAddon align="block-right">
+                    <InputGroupButton size="icon" onClick={toggleSenhaVisible}>
+                      {senhaVisible ? <EyeClosedIcon /> : <EyeIcon />}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="flex flex-col items-end space-y-2 bg-background-light">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isPending || !credentials.email || !credentials.senha}
+            >
+              {isPending ? (
+                <span className="flex items-center space-x-2">
+                  <Spinner /> Entrando
+                </span>
+              ) : (
+                "Entrar"
+              )}
+            </Button>
+            <p className="flex flex-row gap-1 text-xs">
+              Ainda não tem uma conta?
+              <Link to="/cadastrar" className="text-primary-hover underline">
+                Registre-se aqui
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </form>
     </div>
   );
 }
