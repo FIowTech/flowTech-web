@@ -1,3 +1,5 @@
+import dashboardPreviewImg from "@/assets/image.png";
+import heroImg from "@/assets/portico-index.png";
 import { MetricasCard } from "../components/institucional/metricas-card";
 import { MissaoCard } from "../components/institucional/missao-card";
 import { Navbar } from "../components/institucional/navbar";
@@ -32,7 +34,7 @@ export default function LandingPage() {
 
           <div className="relative pb-16 sm:pb-20">
             <img
-              src="/assets/portico-index.png"
+              src={heroImg}
               alt="Pórtico de pedágio free flow monitorado pelo FlowTech em rodovia de tráfego intenso"
               className="aspect-4/3 w-full rounded-sm border border-border object-cover"
             />
@@ -83,7 +85,7 @@ export default function LandingPage() {
 
           <img
             className="w-full max-w-4xl rounded-sm border border-border"
-            src="/assets/image.png"
+            src={dashboardPreviewImg}
             alt="Dashboard de diagnóstico do FlowTech"
           />
         </section>
