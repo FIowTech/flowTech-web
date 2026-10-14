@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
   BellIcon,
   HardDrivesIcon,
@@ -5,7 +6,6 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import { NavLink } from "react-router";
-import { cn } from "@/lib/utils";
 
 const navitems = [
   { text: "Home", to: "/", icon: HouseIcon },
