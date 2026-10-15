@@ -1,9 +1,10 @@
+import { Badge } from "../ui/badge";
 import { Card, CardContent } from "../ui/card";
 
 export function ServidorDetalhes({ servidor }) {
   if (!servidor) {
     return (
-      <Card size="sm" className="w-full lg:w-72">
+      <Card size="sm" className="w-full bg-background lg:w-72">
         <CardContent className="text-sm text-muted-foreground">
           Selecione um servidor no mapa para ver os detalhes.
         </CardContent>
@@ -14,7 +15,7 @@ export function ServidorDetalhes({ servidor }) {
   const { endereco, sistema } = servidor;
 
   return (
-    <Card size="sm" className="w-full lg:w-72">
+    <Card size="sm" className="w-full bg-background lg:w-72">
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           Informações de:
@@ -71,8 +72,11 @@ function Linha({ label, valor }) {
 
 function Valor({ children }) {
   return (
-    <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-[11px] font-semibold text-foreground">
+    <Badge
+      variant="secondary"
+      className="h-auto rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold"
+    >
       {children}
-    </span>
+    </Badge>
   );
 }
