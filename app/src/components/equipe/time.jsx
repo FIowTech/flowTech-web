@@ -1,5 +1,4 @@
-
-
+import { LogOut } from "lucide-react";
 
 const membros = [
   {
@@ -29,7 +28,7 @@ const membros = [
   },
 ];
 
-export default function DashboardMembros() {
+export default function Equipe() {
   return (
     <main className="min-h-screen 
 bg-slate-50 p-5 text-slate-800 sm:p-8 lg:p-10">
@@ -61,15 +60,15 @@ bg-slate-50 p-5 text-slate-800 sm:p-8 lg:p-10">
               aria-label="Sair"
               className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-600 transition hover:bg-red-100"
             >
-              
+              <LogOut size={18}/>
             </button>
           </div>
         </header>
 
-        // Conteúdo principal 
+      
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
 
-          // Membros 
+          
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
               <h2 className="text-2xl font-semibold leading-tight">
