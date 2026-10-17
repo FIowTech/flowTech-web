@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 
 export function EmbarcadoCard({ embarcado }) {
   const { apelido, modelo, enderecoMac, status } = embarcado;
+  const nivelAcesso = 1;
 
   return (
     <Card size="sm" className="rounded-md">
@@ -20,12 +21,14 @@ export function EmbarcadoCard({ embarcado }) {
           </span>
         </div>
 
-        <Button
-          variant="outline"
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          <PencilSimpleLineIcon />
-        </Button>
+        {nivelAcesso <= 1 && (
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <PencilSimpleLineIcon />
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
