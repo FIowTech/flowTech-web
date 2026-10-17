@@ -7,7 +7,7 @@ export function EmbarcadosList({ embarcados, refetch }) {
     <ul className="w-full flex flex-col space-y-2">
       {embarcados.length > 0 ? (
         embarcados.map((emb) => (
-          <li key={emb.id}>
+          <li key={emb.enderecoMac}>
             <EmbarcadoCard embarcado={emb} />
           </li>
         ))

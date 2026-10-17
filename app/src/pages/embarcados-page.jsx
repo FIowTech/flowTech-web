@@ -1,8 +1,9 @@
+import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-create-form";
 import { EmbarcadosList } from "@/components/embarcados/embarcados-list";
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowsCounterClockwiseIcon, PlusIcon } from "@phosphor-icons/react";
+import { ArrowsCounterClockwiseIcon } from "@phosphor-icons/react";
 
 // Variáveis mockadas e temporárias
 const tempEmpresaRazaoSocial = "%Razao_Social%";
@@ -58,9 +59,7 @@ export default function EmbarcadosPage() {
           </h2>
 
           <div className="flex items-center gap-1">
-            <Button className="flex items-center gap-2 cursor-pointer">
-              <PlusIcon />
-            </Button>
+            <EmbarcadoCreateForm />
             <Button
               variant="outline"
               className="flex items-center gap-2 cursor-pointer"
