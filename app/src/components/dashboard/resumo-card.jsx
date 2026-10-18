@@ -1,19 +1,31 @@
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { cn } from "@/lib/utils";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 const statusColors = {
-  verde: "bg-success text-success-foreground",
-  amarelo: "bg-warning text-warning-foreground",
-  vermelho: "bg-destructive text-danger-foreground",
+  verde: "bg-linear-to-b from-[#5ace8b] to-[#4eaf89]",
+  amarelo: "bg-linear-to-b from-[#f1c453] to-[#d9a540]",
+  vermelho: "bg-linear-to-b from-[#d04f5e] to-[#c34557]",
 };
 
-export function ResumoCard({ titulo, icon: Icon, atualizadoEm, children }) {
+const tons = {
+  neutro: "bg-foreground/15",
+  warning: "bg-warning/50",
+  destructive: "bg-destructive/30",
+};
+
+export function ResumoCard({
+  titulo,
+  icon: Icon,
+  tom = "neutro",
+  atualizadoEm,
+  children,
+}) {
   return (
-    <Card size="sm" className="flex-1">
+    <Card size="sm" className="flex-1 bg-background">
       <CardHeader>
         <CardTitle>{titulo}</CardTitle>
 
-        <CardAction className="rounded-md bg-secondary p-1.5 text-muted-foreground">
+        <CardAction className={cn("rounded-md p-1.5 text-foreground/70", tons[tom])}>
           <Icon size={16} />
         </CardAction>
       </CardHeader>
