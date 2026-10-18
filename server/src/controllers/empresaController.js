@@ -57,7 +57,7 @@ async function cadastrar(req, res) {
     }
 
     // 3. Inicia registro de Empresa
-    await empresaModel.cadastrar(
+    const response = await empresaModel.cadastrar(
       cnpj,
       razao_social,
       nome_fantasia,
@@ -65,7 +65,10 @@ async function cadastrar(req, res) {
       senha,
     );
 
-    res.status(201).send({ message: "Empresa cadastrada com sucesso!" });
+    res.status(201).send({
+      message: "Empresa cadastrada com sucesso!",
+      result: response.data,
+    });
   } catch (error) {
     const message = error.message || error.sqlMessage;
     if (message) {

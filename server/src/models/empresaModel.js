@@ -1,11 +1,31 @@
 const database = require("../database/config");
 
 async function cadastrar(cnpj, razao_social, nome_fantasia, email, senha) {
-  const instrucaoSql = `
-    CALL sp_cadastrar_empresa('${cnpj}', '${razao_social}', '${nome_fantasia}', '${email}', '${senha}');
-  `;
-  console.log("Executando a instrução SQL: \n" + instrucaoSql);
-  return database.executar(instrucaoSql);
+  const conn = await database.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [resultEmpresa] = await conn.execute(
+      "INSERT INTO empresa(cnpj, razao_social, nome_fantasia, email) VALUES (?, ?, ?, ?)",
+      [cnpj, razao_social, nome_fantasia, email],
+    );
+
+    const nomeUsuario = `Usuário de ${nome_fantasia} (ADM)`;
+    await conn.execute(
+      "INSERT INTO usuario(empresa_id, nome, email, senha, nivel_acesso) VALUES (?, ?, ?, SHA2(?, 256), 1)",
+      [resultEmpresa.insertId, nomeUsuario, email, senha],
+    );
+
+    await conn.commit();
+    return { data: resultEmpresa.insertId };
+  } catch (error) {
+    await conn.rollback();
+    console.error(error);
+    throw error;
+  } finally {
+    conn.release();
+  }
 }
 
 async function buscarPorId(id_empresa) {
@@ -30,13 +50,13 @@ async function configurarJira(empresaId, campos = {}) {
 
   await database.executar(instrucaoUpdateSql, valores);
   console.log(
-    "[embarcadoModel] Executando a instrução SQL: \n" + instrucaoUpdateSql,
+    "[empresaModel] Executando a instrução SQL: \n" + instrucaoUpdateSql,
   );
 
   const instrucaoSelectSql = "SELECT * FROM empresa WHERE id_empresa = ?";
   const [result] = await database.executar(instrucaoSelectSql, [empresaId]);
   console.log(
-    "[embarcadoModel] Executando a instrução SQL: \n" + instrucaoSelectSql,
+    "[empresaModel] Executando a instrução SQL: \n" + instrucaoSelectSql,
   );
 
   return { updated: result[0] };
