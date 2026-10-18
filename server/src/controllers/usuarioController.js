@@ -10,65 +10,49 @@ async function autenticar(req, res) {
   const { email, senha } = req.body;
 
   if (isMissing(email)) {
-    res.status(400).send({ message: "O campo 'email' está faltando." });
-    return;
+    return res.status(400).send({ message: "O campo 'email' está faltando." });
   }
 
   if (isMissing(senha)) {
-    res.status(400).send({ message: "O campo 'senha' está faltando." });
-    return;
+    return res.status(400).send({ message: "O campo 'senha' está faltando." });
   }
 
   try {
     // 1. Tenta autenticar usuário
     const result = await usuarioModel.autenticar(email, senha);
-    if (!result || result.length != 1) {
+    if (!result.data) {
       throw new Error("Usuário inexistente ou credenciais inválidas.");
     }
 
-    // 2. Se conseguir, cria um token JWT com o objeto do usuário logado e
-    // anexa o token à resposta
-    const usuario = result[0];
-    const payload = {
-      ...usuario,
-    };
+    // 2. Se conseguir, cria um token JWT
+    const usuario = result.data;
+    const payload = { ...usuario };
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       algorithm: "HS256",
       expiresIn: "24h",
     });
 
-    // Cookie HttpOnly: inacessível via frontend e contém informações sensíveis
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-      path: "/",
-    });
-
-    // Cookie Autenticado: acessível via frontend, contém apenas um boolean.
-    res.cookie("autenticado", true, {
-      httpOnly: false,
-      secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
-      sameSite: "lax",
-      path: "/",
-    });
-
     res.status(200).send({
       message: "Usuário logado com sucesso!",
-      redirectTo: usuario.nivel_acesso === 0 ? "/cadastrar/empresa" : "/",
+      token,
       usuario: {
         nome: usuario.nome,
         email: usuario.email,
+        nivel_acesso: usuario.nivel_acesso,
       },
+      redirectTo: usuario.nivel_acesso === 0 ? "/cadastrar/empresa" : "/",
     });
   } catch (error) {
-    const message = error.message || error.sqlMessage;
+    const message =
+      (error instanceof Error && error.message) || error.sqlMessage;
+
     if (message) {
-      res.status(403).send({ message });
+      res.status(401).send({ message });
       return;
     }
-    res.status(500).send({ message: "Erro interno no servidor." });
+
+    res.status(500).send({ message: "Erro interno no servidor" });
   }
 }
 
@@ -115,14 +99,22 @@ async function cadastrar(req, res) {
         .json({ message: "Email informado já está em uso." });
     }
 
-    // 3. Inicia registro de usuário
-    await usuarioModel.cadastrar(codigo_acesso, nome, email, senha);
+    // 2. Inicia registro de usuário
+    const response = await usuarioModel.cadastrar(
+      codigo_acesso,
+      nome,
+      email,
+      senha,
+    );
 
-    res.status(201).send({ message: "Usuário cadastrado com sucesso!" });
+    res.status(201).send({
+      message: "Usuário cadastrado com sucesso!",
+      result: response.data,
+    });
   } catch (error) {
     const message = error.message || error.sqlMessage;
     if (message) {
-      return res.status(403).send({ message });
+      return res.status(500).send({ message });
     }
     res.status(500).send({ message: "Erro interno no servidor." });
   }
@@ -138,16 +130,28 @@ async function sair(req, res) {
   return res.status(200).json({ message: "Logout realizado." });
 }
 
-async function autenticarPagina(req, res) {
-  if (req.status == 401) {
-    return res.status(403);
-  }
-  return res.status(200);
-}
-
 module.exports = {
   autenticar,
   cadastrar,
   sair,
-  autenticarPagina,
 };
+
+/* [!] OBS: Estamos utilizando o Authorization Header para enviar o token agora. Cookies tornam-se obsoletos.
+
+Cookie HttpOnly: inacessível via frontend e contém informações sensíveis
+res.cookie("access_token", token, {
+  httpOnly: true,
+  secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
+  sameSite: "lax",
+  maxAge: 24 * 60 * 60 * 1000,
+  path: "/",
+});
+
+Cookie Autenticado: acessível via frontend, contém apenas um boolean.
+res.cookie("autenticado", true, {
+  httpOnly: false,
+  secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
+  sameSite: "lax",
+  path: "/",
+});
+*/
