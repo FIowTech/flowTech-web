@@ -6,9 +6,7 @@ async function autenticar(email, senha) {
     FROM usuario WHERE email = ? AND senha = SHA2(?, 256);
   `;
 
-  console.log(
-    "[usuarioModel.js] Executando a instrução SQL: \n" + instrucaoSql,
-  );
+  console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
 
   const [result] = await database.executar(instrucaoSql, [email, senha]);
 
@@ -73,7 +71,7 @@ async function cadastrar(codigo_acesso, nome, email, senha) {
     await conn.rollback();
 
     console.error(
-      "[usuarioModel.js] Erro na transação, realizando rollback:",
+      "[usuarioModel] Erro na transação, realizando rollback:",
       error instanceof Error && error.message ? error.message : error,
     );
 

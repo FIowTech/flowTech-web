@@ -21,7 +21,12 @@ async function cadastrar(cnpj, razao_social, nome_fantasia, email, senha) {
     return { data: resultEmpresa.insertId };
   } catch (error) {
     await conn.rollback();
-    console.error(error);
+
+    console.error(
+      "[empresaModel] Erro na transação, realizando rollback:",
+      error instanceof Error && error.message ? error.message : error,
+    );
+
     throw error;
   } finally {
     conn.release();
