@@ -24,24 +24,22 @@ function isPasswordValid(password) {
 
 // tipo = "embarcado" ou tipo = "empresa"
 function enderecoErrors(endereco, tipo) {
-  const { cep, logradouro, bairro, localidade, uf, numero, km, sentido } =
-    endereco;
+  const {
+    cep,
+    logradouro,
+    bairro,
+    localidade,
+    uf,
+    numero,
+    km,
+    sentido,
+    lat,
+    lon,
+  } = endereco;
   let errors = [];
 
   if (isBlank(cep)) {
     errors.push("cep");
-  }
-
-  if (isMissing(numero)) {
-    errors.push("numero");
-  }
-
-  if (isBlank(localidade)) {
-    errors.push("localidade");
-  }
-
-  if (isBlank(uf)) {
-    errors.push("uf");
   }
 
   if (isMissing(logradouro)) {
@@ -52,12 +50,32 @@ function enderecoErrors(endereco, tipo) {
     errors.push("bairro");
   }
 
+  if (isBlank(localidade)) {
+    errors.push("localidade");
+  }
+
+  if (isBlank(uf)) {
+    errors.push("uf");
+  }
+
+  if (isMissing(numero)) {
+    errors.push("numero");
+  }
+
   if (tipo === "embarcado") {
     if (isBlank(km)) {
       errors.push("km");
     }
     if (isBlank(sentido)) {
       errors.push("sentido");
+    }
+
+    if (isBlank(lat)) {
+      errors.push("lat");
+    }
+
+    if (isBlank(lon)) {
+      errors.push("lon");
     }
   }
 
