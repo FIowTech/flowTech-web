@@ -93,11 +93,11 @@ async function buscarPorId(req, res) {
         .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
     }
 
-    const empresaResult = await empresaModel.buscarPorId(empresa_id);
+    const response = await empresaModel.buscarPorId(empresa_id);
 
     res.status(200).json({
       message: "Empresa encontrada com sucesso!",
-      result: empresaResult[0],
+      result: response.data,
     });
   } catch (error) {
     const message = error.message || error.sqlMessage;
@@ -109,7 +109,63 @@ async function buscarPorId(req, res) {
   }
 }
 
+async function configurarJira(req, res) {
+  const { empresa_id, nivel_acesso } = req.usuario;
+  const { jira_email, jira_base_url, jira_project_key, jira_api_key } =
+    req.body;
+
+  const camposParaAtualizar = {};
+
+  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
+  if (nivel_acesso > 1) {
+    return res
+      .status(403)
+      .send({ message: "Você não tem permissão para realizar esta ação." });
+  }
+
+  if (isMissing(empresa_id)) {
+    return res
+      .status(400)
+      .json({ message: "ID da Empresa não foi passado na requisição." });
+  }
+
+  try {
+    const empresaExiste = await empresaModel.existePorId(empresa_id);
+    if (!empresaExiste) {
+      return res
+        .status(404)
+        .json({ message: "Nenhuma Empresa encontrada para o ID informado." });
+    }
+
+    if (!isMissing(jira_email)) camposParaAtualizar.jira_email = jira_email;
+    if (!isMissing(jira_base_url))
+      camposParaAtualizar.jira_base_url = jira_base_url;
+    if (!isMissing(jira_project_key))
+      camposParaAtualizar.jira_project_key = jira_project_key;
+    if (!isMissing(jira_api_key))
+      camposParaAtualizar.jira_api_key = jira_api_key;
+
+    const response = await empresaModel.configurarJira(
+      empresa_id,
+      camposParaAtualizar,
+    );
+
+    res.status(200).json({
+      message: "Credenciais do Jira atualizadas com sucesso!",
+      result: response.updated,
+    });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      res.status(403).json({ message });
+      return;
+    }
+    res.status(500).json({ message: "Erro interno no servidor." });
+  }
+}
+
 module.exports = {
   cadastrar,
   buscarPorId,
+  configurarJira,
 };

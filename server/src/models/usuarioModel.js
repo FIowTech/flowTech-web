@@ -10,9 +10,9 @@ async function autenticar(email, senha) {
     "[usuarioModel.js] Executando a instrução SQL: \n" + instrucaoSql,
   );
 
-  const [response] = await database.executar(instrucaoSql, [email, senha]);
+  const [result] = await database.executar(instrucaoSql, [email, senha]);
 
-  return { data: response };
+  return { data: result };
 }
 
 async function cadastrar(codigo_acesso, nome, email, senha) {
@@ -22,14 +22,14 @@ async function cadastrar(codigo_acesso, nome, email, senha) {
     await conn.beginTransaction();
 
     // 1. Procura código no Banco
-    const [resultCodigo] = await conn.execute(
+    const [resultsCodigo] = await conn.execute(
       "SELECT * FROM codigo_acesso WHERE codigo = ? AND status = 'valido' LIMIT 1",
       [codigo_acesso],
     );
-    if (!resultCodigo || resultCodigo.length === 0)
+    if (!resultsCodigo || resultsCodigo.length === 0)
       throw new Error("Código inexistente");
 
-    const codigoEncontrado = resultCodigo[0];
+    const codigoEncontrado = resultsCodigo[0];
 
     if (codigoEncontrado.qtd_usos + 1 > codigoEncontrado.qtd_usos_max)
       throw new Error("Código informado inválido");

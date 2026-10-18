@@ -9,6 +9,11 @@ router.post("/cadastrar", function (req, res) {
   empresaController.cadastrar(req, res);
 });
 
+// === PUT | Configurar Credenciais Jira === //
+router.put("/jira", function (req, res) {
+  empresaController.configurarJira(req, res);
+});
+
 // === GET | Buscar Empresa por ID === //
 router.get("/", function (req, res) {
   /* 
