@@ -5,7 +5,6 @@ import DashboardLayout from "@/pages/dashboard-layout";
 import EmbarcadosDetailsPage from "@/pages/embarcado-details-page";
 import EmbarcadosPage from "@/pages/embarcados-page";
 import EmpresaPage from "@/pages/empresa-page";
-import  Equipe  from "./components/equipe/time";
 import HomePage from "@/pages/home-page";
 import LandingPage from "@/pages/landing-page";
 import LoginPage from "@/pages/login-page";
@@ -43,7 +42,6 @@ export function App() {
           <Route path="/embarcados/:id" element={<EmbarcadosDetailsPage />} />
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           {/* <Route path="/equipe" element={<EquipePage />} /> */}
-          <Route path="/equipe" element={<Equipe/>}/>
         </Route>
       ) : (
         <Route path="/" element={<LandingPage />} />
