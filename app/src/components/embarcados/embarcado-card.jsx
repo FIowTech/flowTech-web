@@ -1,9 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/store/auth-store";
-import { PencilSimpleLineIcon } from "@phosphor-icons/react";
 import { cn } from "cn";
 import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
+import { EmbarcadoEditForm } from "./forms/embarcado-edit-form";
 
 export function EmbarcadoCard({ embarcado }) {
   const { apelido, modelo, endereco_mac, status } = embarcado;
@@ -24,14 +23,7 @@ export function EmbarcadoCard({ embarcado }) {
           </span>
         </div>
 
-        {nivelAcesso <= 1 && (
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <PencilSimpleLineIcon />
-          </Button>
-        )}
+        {nivelAcesso <= 1 && <EmbarcadoEditForm embarcado={embarcado} />}
       </CardContent>
     </Card>
   );

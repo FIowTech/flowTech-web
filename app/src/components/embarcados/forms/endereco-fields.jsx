@@ -31,7 +31,9 @@ const SENTIDOS = ["Norte", "Sul", "Leste", "Oeste"];
 
 export function EnderecoFields({ fields, handler }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [cepInput, setCepInput] = useState("");
+
+  // todo: bloquear primeira requisição se for edit
+  const [cepInput, setCepInput] = useState(mascaraCep(fields.cep) || "");
 
   useEffect(() => {
     const cepLimpo = cepInput.replace(/\D/g, "");
@@ -117,6 +119,9 @@ export function EnderecoFields({ fields, handler }) {
 
   const handleUfChange = (value) => handler((prev) => ({ ...prev, uf: value }));
 
+  const handleNumeroChange = (e) =>
+    handler((prev) => ({ ...prev, numero: e.target.value ?? "S/N" }));
+
   return (
     <FieldSet className="min-w-0">
       <FieldLegend>Endereço</FieldLegend>
@@ -126,7 +131,7 @@ export function EnderecoFields({ fields, handler }) {
 
       <FieldGroup className="grid grid-cols-6 gap-4">
         {/* Campo - CEP */}
-        <Field className="col-span-2">
+        <Field className="col-span-4">
           <FieldLabel htmlFor="embarcado-cep">
             CEP<span className="text-destructive font-bold">*</span>
           </FieldLabel>
@@ -142,15 +147,28 @@ export function EnderecoFields({ fields, handler }) {
             required
           />
         </Field>
-        {/* Campo - Km */}
+        {/* Campo - Número */}
         <Field className="col-span-2">
+          <FieldLabel htmlFor="embarcado-numero">Número</FieldLabel>
+          <Input
+            id="embarcado-numero"
+            type="text"
+            value={fields.numero}
+            onChange={handleNumeroChange}
+            placeholder="000"
+            disabled={isLoading}
+            required
+          />
+        </Field>
+        {/* Campo - Km */}
+        <Field className="col-span-4">
           <FieldLabel htmlFor="embarcado-km">
             Km<span className="text-destructive font-bold">*</span>
           </FieldLabel>
           <Input
             id="embarcado-km"
             type="number"
-            value={fields.numero}
+            value={fields.km}
             onChange={handleKmChange}
             disabled={isLoading}
             required
@@ -221,7 +239,7 @@ export function EnderecoFields({ fields, handler }) {
             />
             <InputGroupAddon align="inline-end">
               <InputGroupText>
-                {fields.complemento.length}/{MAX_CHARACTERS_COMPLEMENTO}
+                {fields.complemento?.length}/{MAX_CHARACTERS_COMPLEMENTO}
               </InputGroupText>
             </InputGroupAddon>
           </InputGroup>

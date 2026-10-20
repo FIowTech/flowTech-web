@@ -35,6 +35,7 @@ export function EmbarcadoCreateForm() {
     bairro: "",
     localidade: "",
     uf: "",
+    numero: "S/N",
     complemento: "",
     km: "",
     sentido: "",
@@ -76,10 +77,9 @@ export function EmbarcadoCreateForm() {
       });
 
     try {
-      console.log("HEYA!!!");
       const fields = {
         ...informacoesGerais,
-        endereco: { ...endereco, numero: "S/N" },
+        endereco,
         componentes: Object.fromEntries(componentesMap),
       };
       console.log(fields);
