@@ -8,17 +8,25 @@ async function buscar(empresaId) {
   const resultEmbarcados = await database.executar(instrucaoSql, [empresaId]);
 
   for (const embarcado of resultEmbarcados) {
+    const [resultEndereco] = await database.executar(
+      `
+      SELECT e.* FROM endereco e 
+      JOIN embarcado em ON e.id_endereco = em.endereco_id 
+      WHERE em.id_embarcado = ? AND em.empresa_id = ?`,
+      [embarcado.id_embarcado, empresaId],
+    );
+
     const resultParametros = await database.executar(
       `
       SELECT c.id_componente, c.nome, c.descricao, p.status, p.limite_max, p.limite_min FROM parametro p 
       JOIN componente c ON p.componente_id = c.id_componente 
-      WHERE embarcado_id = ? AND empresa_id = ?
-      `,
+      WHERE embarcado_id = ? AND empresa_id = ?`,
       [embarcado.id_embarcado, empresaId],
     );
 
     embarcadosComParametros.push({
       ...embarcado,
+      endereco: resultEndereco,
       parametros: resultParametros,
     });
   }
