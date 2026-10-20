@@ -15,6 +15,7 @@ export const useAuth = create()(
   persist(
     (set) => ({
       usuario: null,
+      token: null,
       isLoggedIn: false,
       isPending: false,
       error: null,
@@ -40,7 +41,7 @@ async function cadastrar(credentials, set) {
       `${import.meta.env.VITE_BASE_API_URL}/usuarios/cadastrar`,
       {
         method: "POST",
-        credentials: "include",
+        // credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codigo_acesso, nome, email, senha }),
       },
@@ -74,7 +75,7 @@ async function login(credentials, set) {
       `${import.meta.env.VITE_BASE_API_URL}/usuarios/login`,
       {
         method: "POST",
-        credentials: "include",
+        // credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...credentials }),
       },
@@ -86,7 +87,12 @@ async function login(credentials, set) {
     }
 
     // Sucesso em login:
-    set({ usuario: data.usuario, isLoggedIn: true, error: null });
+    set({
+      usuario: data.usuario,
+      token: data.token,
+      isLoggedIn: true,
+      error: null,
+    });
 
     return { success: true, redirectTo: data.redirectTo };
   } catch (error) {
@@ -104,42 +110,52 @@ async function login(credentials, set) {
   }
 }
 
-async function logout(set) {
-  set({ isPending: true, error: null });
-
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_BASE_API_URL}/usuarios/sair`,
-      { method: "POST", credentials: "include" },
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        typeof data.message === "string" && data.message.trim()
-          ? data.message
-          : "Não foi possível realizar o logout.",
-      );
-    }
-
-    set({
-      usuario: null,
-      isLoggedIn: false,
-      error: null,
-    });
-
-    return { success: true };
-  } catch (error) {
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : "Erro inesperado ao realizar o logout.";
-
-    set({ error: message });
-
-    return { success: false, error: message };
-  } finally {
-    set({ isPending: false });
-  }
+function logout(set) {
+  set({
+    usuario: null,
+    token: null,
+    isLoggedIn: false,
+    error: null,
+  });
 }
+
+// async function logout(set) {
+//   set({ isPending: true, error: null });
+
+//   try {
+//     const response = await fetch(
+//       `${import.meta.env.VITE_BASE_API_URL}/usuarios/sair`,
+//       { method: "POST", credentials: "include" },
+//     );
+
+//     const data = await response.json();
+
+//     if (!response.ok) {
+//       throw new Error(
+//         typeof data.message === "string" && data.message.trim()
+//           ? data.message
+//           : "Não foi possível realizar o logout.",
+//       );
+//     }
+
+//     set({
+//       usuario: null,
+//       token: null,
+//       isLoggedIn: false,
+//       error: null,
+//     });
+
+//     return { success: true };
+//   } catch (error) {
+//     const message =
+//       error instanceof Error && error.message
+//         ? error.message
+//         : "Erro inesperado ao realizar o logout.";
+
+//     set({ error: message });
+
+//     return { success: false, error: message };
+//   } finally {
+//     set({ isPending: false });
+//   }
+// }
