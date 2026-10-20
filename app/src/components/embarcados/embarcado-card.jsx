@@ -1,12 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/store/auth-store";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react";
 import { cn } from "cn";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 export function EmbarcadoCard({ embarcado }) {
-  const { apelido, modelo, enderecoMac, status } = embarcado;
-  const nivelAcesso = 1;
+  const { apelido, modelo, endereco_mac, status } = embarcado;
+  const nivelAcesso = useAuth((state) => state.usuario?.nivel_acesso);
 
   return (
     <Card size="sm" className="rounded-md">
@@ -14,10 +15,12 @@ export function EmbarcadoCard({ embarcado }) {
         <div className="w-full flex flex-col">
           <div className="flex items-center gap-2">
             <h3 className="font-heading font-bold text-lg">{apelido}</h3>
-            <EmbarcadoStatusBadge status={status} />
+            <EmbarcadoStatusBadge
+              status={status === 1 ? "controlado" : "critico"}
+            />
           </div>
           <span className="text-text-muted text-xs">
-            {enderecoMac} • {modelo}
+            {endereco_mac} • {modelo}
           </span>
         </div>
 

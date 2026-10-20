@@ -33,7 +33,7 @@ export function InformacoesGeraisFields({ fields, handler }) {
 
     handler((prev) => ({
       ...prev,
-      enderecoMac: mascaraEnderecoMac(value),
+      endereco_mac: mascaraEnderecoMac(value),
     }));
   };
 
@@ -54,7 +54,7 @@ export function InformacoesGeraisFields({ fields, handler }) {
             className="max-w-xs"
             type="text"
             placeholder="00:00:00:00:00:00"
-            value={fields.enderecoMac}
+            value={fields.endereco_mac}
             onChange={handleEnderecoMacChange}
             required
           />

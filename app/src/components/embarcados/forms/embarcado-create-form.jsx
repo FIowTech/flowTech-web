@@ -10,17 +10,21 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
+import { useAuth } from "@/store/auth-store";
 import { PlusIcon } from "@phosphor-icons/react";
-import { useState } from "react";
-import { ComponentesMonitoradosField } from "./componentes-monitorados-fields";
+import { useEffect, useState } from "react";
+import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
 
 export function EmbarcadoCreateForm() {
+  const authToken = useAuth((state) => state.token);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isSendingForm, setIsSendingForm] = useState(false);
+
   const [informacoesGerais, setInformacoesGerais] = useState({
-    enderecoMac: "",
+    endereco_mac: "",
     modelo: "",
     apelido: "",
   });
@@ -38,106 +42,21 @@ export function EmbarcadoCreateForm() {
     lon: null,
   });
 
-  const [componentesMonitorados, setComponentesMonitorados] = useState({
-    cpu: {
-      id: 1,
-      nome: "CPU",
-      metricas: {
-        uso: {
-          id: 1,
-          nome: "Uso",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "pct",
-          monitorado: false,
-        },
-        frequencia: {
-          id: 2,
-          nome: "Frequência",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "pct",
-          monitorado: false,
-        },
-      },
-    },
-    ram: {
-      id: 2,
-      nome: "Memória RAM",
-      metricas: {
-        uso: {
-          id: 1,
-          nome: "Uso",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "MiB",
-          monitorado: false,
-        },
-      },
-    },
-    swap: {
-      id: 3,
-      nome: "Memória SWAP",
-      metricas: {
-        uso: {
-          id: 1,
-          nome: "Uso",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "MiB",
-          monitorado: false,
-        },
-      },
-    },
-    disco: {
-      id: 4,
-      nome: "Armazenamento (Disco)",
-      metricas: {
-        uso: {
-          id: 1,
-          nome: "Uso",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "MiB",
-          monitorado: false,
-        },
-      },
-    },
-    rede: {
-      id: 5,
-      nome: "Tráfego de Rede",
-      metricas: {
-        download: {
-          id: 1,
-          nome: "Velocidade de Download",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "Mbps",
-          monitorado: false,
-        },
-        upload: {
-          id: 2,
-          nome: "Velocidade de Upload",
-          limiteMax: 0.0,
-          limiteMin: 0.0,
-          unidadeMedida: "Mbps",
-          monitorado: false,
-        },
-      },
-    },
-  });
+  const [componentesMonitorados, setComponentesMonitorados] = useState([]);
 
-  const isInformacoesGeraisValid =
-    informacoesGerais.enderecoMac.length === 17 &&
-    informacoesGerais.apelido.length > 0 &&
-    informacoesGerais.modelo.length > 0;
+  const isInformacoesGeraisValid = true;
+  // const isInformacoesGeraisValid =
+  //   informacoesGerais.endereco_mac.length === 17 &&
+  //   informacoesGerais.apelido.length > 0 &&
+  //   informacoesGerais.modelo.length > 0;
 
   const isEnderecoValid = Object.entries(endereco)
     .filter((entry) => entry[0] !== "complemento")
     .every((entry) => entry[1] !== null);
 
-  const isComponentesMonitoradosValid =
-    Object.values(componentesMonitorados).length > 0;
+  const isComponentesMonitoradosValid = componentesMonitorados.some(
+    (c) => c.status === 1,
+  );
 
   const isFormValid =
     isInformacoesGeraisValid &&
@@ -148,23 +67,91 @@ export function EmbarcadoCreateForm() {
     e.preventDefault();
     if (!isFormValid) return;
 
-    setIsLoading(true);
+    setIsSendingForm(true);
+    const componentesMap = new Map();
+    componentesMonitorados
+      .filter((c) => c.status === 1)
+      .forEach((c) => {
+        componentesMap.set(c.nome, c);
+      });
+
     try {
       console.log("HEYA!!!");
-      console.log({
+      const fields = {
         ...informacoesGerais,
-        endereco,
-        componentes: componentesMonitorados,
-      });
+        endereco: { ...endereco, numero: "S/N" },
+        componentes: Object.fromEntries(componentesMap),
+      };
+      console.log(fields);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BASE_API_URL}/embarcados/cadastrar`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ ...fields }),
+        },
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      toast.add({ description: data.message, type: "success" });
     } catch (error) {
       const message =
         (error instanceof Error && error.message) ||
         "Houve um error ao cadastrar o Embarcado.";
       toast.add({ description: message, type: "error" });
     } finally {
-      setIsLoading(false);
+      setIsSendingForm(false);
     }
   };
+
+  useEffect(() => {
+    const carregarRecursos = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BASE_API_URL}/componentes`,
+          { method: "GET", headers: { Authorization: `Bearer ${authToken}` } },
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Não foi possível carregar a lista de componentes monitóraveis",
+          );
+        }
+
+        const componentes = data.result.map((c) => ({
+          ...c,
+          status: 0,
+          limite_max: 0.0,
+          limite_min: 0.0,
+        }));
+        setComponentesMonitorados(componentes);
+      } catch (error) {
+        const message =
+          (error instanceof Error && error.message) ||
+          "Houve um error ao buscar recursos.";
+
+        toast.add({
+          description: message,
+          type: error,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    carregarRecursos();
+  }, [authToken]);
 
   return (
     <Dialog>
@@ -197,19 +184,21 @@ export function EmbarcadoCreateForm() {
             <EnderecoFields fields={endereco} handler={setEndereco} />
           </div>
 
-          <ComponentesMonitoradosField
-            fields={componentesMonitorados}
-            handler={setComponentesMonitorados}
-          />
+          {!isLoading && componentesMonitorados && (
+            <ComponentesMonitoradosFields
+              fields={componentesMonitorados}
+              handler={setComponentesMonitorados}
+            />
+          )}
         </form>
 
         <DialogFooter>
           <Button
             type="submit"
             form="criar-embarcado-form"
-            disabled={isLoading || !isFormValid}
+            disabled={isSendingForm || !isFormValid}
           >
-            {isLoading ? (
+            {isSendingForm ? (
               <span className="flex items-center space-x-2">
                 <Spinner /> Cadastrando
               </span>

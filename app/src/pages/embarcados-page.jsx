@@ -1,37 +1,79 @@
-import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-create-form";
 import { EmbarcadosList } from "@/components/embarcados/embarcados-list";
+import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-create-form";
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { toast } from "@/components/ui/toast";
+import { useAuth } from "@/store/auth-store";
 import { ArrowsCounterClockwiseIcon } from "@phosphor-icons/react";
-
-// Variáveis mockadas e temporárias
-const tempEmpresaRazaoSocial = "%Razao_Social%";
-const tempEmbarcados = [
-  {
-    enderecoMac: "1A:2B:3C:4D:5E:6F",
-    apelido: "SRV-001",
-    modelo: "PADR-SR1980",
-    status: "controlado",
-  },
-  {
-    enderecoMac: "7A:8B:9C:0D:1E:2F",
-    apelido: "SRV-002",
-    modelo: "PADR-SR1980",
-    status: "atencao",
-  },
-  {
-    enderecoMac: "3A:4B:5C:6D:7E:8F",
-    apelido: "SRV-003",
-    modelo: "PADR-SR1980",
-    status: "critico",
-  },
-];
+import { useEffect, useState } from "react";
 
 export default function EmbarcadosPage() {
+  const authToken = useAuth((state) => state.token);
+  const [embarcados, setEmbarcados] = useState([]);
+  const [empresa, setEmpresa] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleRefetch = () => {
     console.log("atualizando lista de embarcados...");
   };
+
+  useEffect(() => {
+    const carregarRecursos = async () => {
+      setIsLoading(true);
+
+      try {
+        // 1. Empresa do Usuário logado
+        const responseEmpresa = await fetch(
+          `${import.meta.env.VITE_BASE_API_URL}/empresas`,
+          {
+            method: "GET",
+            headers: { Authorization: `Bearer ${authToken}` },
+          },
+        );
+
+        const empresaData = await responseEmpresa.json();
+        if (!responseEmpresa.ok) {
+          throw new Error(
+            empresaData.message ||
+              "Não foi possível carregar os dados da Empresa",
+          );
+        }
+        setEmpresa(empresaData.result);
+
+        // 2. Lista de Embarcados
+        const responseEmbarcados = await fetch(
+          `${import.meta.env.VITE_BASE_API_URL}/embarcados`,
+          {
+            method: "GET",
+            headers: { Authorization: `Bearer ${authToken}` },
+          },
+        );
+
+        const embarcadosData = await responseEmbarcados.json();
+        if (!responseEmbarcados.ok) {
+          throw new Error(
+            embarcadosData.message ||
+              "Não foi possível carregar os dados dos Embarcados",
+          );
+        }
+        setEmbarcados(embarcadosData.result);
+      } catch (error) {
+        const message =
+          (error instanceof Error && error.message) ||
+          "Houve um error ao buscar recursos.";
+
+        toast.add({
+          description: message,
+          type: error,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    carregarRecursos();
+  }, [authToken]);
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -40,7 +82,7 @@ export default function EmbarcadosPage() {
         <div>
           <h2 className="block text-xs text-muted-foreground">Embarcados de</h2>
           <h1 className="font-heading text-xl font-semibold">
-            {tempEmpresaRazaoSocial}
+            {empresa && empresa.razao_social}
           </h1>
         </div>
 
@@ -53,7 +95,7 @@ export default function EmbarcadosPage() {
           <h2 className="text-xl font-semibold">
             Embarcados encontrados (
             <span className="text-primary-hover font-heading font-semibold">
-              {tempEmbarcados.length}
+              {embarcados.length}
             </span>
             )
           </h2>
@@ -68,7 +110,9 @@ export default function EmbarcadosPage() {
             </Button>
           </div>
         </div>
-        <EmbarcadosList embarcados={tempEmbarcados} refetch={handleRefetch} />
+        {!isLoading && embarcados.length > 0 && (
+          <EmbarcadosList embarcados={embarcados} refetch={handleRefetch} />
+        )}
       </div>
     </div>
   );
