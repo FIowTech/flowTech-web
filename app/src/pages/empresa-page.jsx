@@ -1,4 +1,11 @@
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   EmpresaEtapa1,
   EmpresaEtapa2,
   EmpresaEtapa3,
@@ -9,12 +16,18 @@ export default function EmpresaPage() {
   const etapaAtual = useEmpresaStore((state) => state.etapa);
 
   return (
-    <>
-      <main className="flex min-h-screen bg-white items-center justify-center px-4 py-8">
+    <Card className="max-w-xl w-full">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold">
+          Registro de Empresas
+        </CardTitle>
+        <CardDescription>Cadastro de empresas parceiras.</CardDescription>
+      </CardHeader>
+      <CardContent>
         {etapaAtual === 1 && <EmpresaEtapa1 />}
         {etapaAtual === 2 && <EmpresaEtapa2 />}
-        {etapaAtual === 3 && <EmpresaEtapa3  />}
-      </main>
-    </>
+        {etapaAtual === 3 && <EmpresaEtapa3 />}
+      </CardContent>
+    </Card>
   );
 }

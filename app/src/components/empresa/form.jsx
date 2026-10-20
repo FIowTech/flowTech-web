@@ -18,19 +18,11 @@ export function EmpresaEtapa1() {
 
   return (
     <form className="space-y-4 mx-auto w-full max-w-md">
-      <h1 className="relative top-1 font-black text-2xl">
-        Registro de Empresas
-      </h1>
-      <p className="mb-10 text-sm text-slate-600">
-        Cadastro de empresas parceiras.
-      </p>
-
       <EmpresaField
         label="CNPJ"
         value={campos.cnpj}
         onChange={(e) => changeCnpj(e.target.value)}
         type="text"
-        placeholder="00.000.000/0000-00"
       />
 
       <EmpresaField
@@ -38,7 +30,6 @@ export function EmpresaEtapa1() {
         value={campos.razaoSocial}
         onChange={(e) => changeRazaoSocial(e.target.value)}
         type="text"
-        placeholder="Ex.: Bobao Dog Ltda."
       />
 
       <EmpresaField
@@ -46,7 +37,6 @@ export function EmpresaEtapa1() {
         value={campos.nomeFantasia}
         onChange={(e) => changeNomeFantasia(e.target.value)}
         type="text"
-        placeholder="Ex.: Dogão do Bobão"
       />
 
       <EmpresaField
@@ -54,7 +44,6 @@ export function EmpresaEtapa1() {
         value={campos.emailEmp}
         onChange={(e) => changeEmailEmp(e.target.value)}
         type="email"
-        placeholder="email@exemplo.com"
       />
       <ButtonProx />
     </form>
@@ -65,21 +54,17 @@ export function EmpresaEtapa2() {
   const { campos, changeNome, changeEmailResp, changeSenha } =
     useEmpresaStore();
 
-  return (
-    <form className="space-y-4 mx-auto w-full max-w-md">
-      <h1 className="relative top-1 font-black text-2xl">
-        Registro de Empresas
-      </h1>
-      <p className="mb-10 text-sm text-slate-600">
-        Cadastro de empresas parceiras.
-      </p>
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
 
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mx-auto w-full max-w-md">
       <EmpresaField
         label="Nome"
         value={campos.nome}
         onChange={(e) => changeNome(e.target.value)}
         type="text"
-        placeholder="Ex.: João da Silva"
       />
 
       <EmpresaField
@@ -87,7 +72,6 @@ export function EmpresaEtapa2() {
         value={campos.emailResp}
         onChange={(e) => changeEmailResp(e.target.value)}
         type="email"
-        placeholder="email@exemplo.com"
       />
 
       <EmpresaField
@@ -95,7 +79,6 @@ export function EmpresaEtapa2() {
         value={campos.senha}
         onChange={(e) => changeSenha(e.target.value)}
         type="password"
-        placeholder="••••••••"
       />
 
       <div className="flex justify-between">
@@ -111,13 +94,6 @@ export function EmpresaEtapa3() {
 
   return (
     <form className="space-y-4 mx-auto w-full max-w-md">
-      <h1 className="relative top-1 font-black text-2xl">
-        Registro de Empresas
-      </h1>
-      <p className="mb-10 text-sm text-slate-600">
-        Cadastro de empresas parceiras.
-      </p>
-
       <div className="grid grid-cols-2 gap-5">
         <div>
           <div className="space-y-3">
