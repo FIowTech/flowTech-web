@@ -20,7 +20,7 @@ const navitems = [
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
 ];
 
-// 0 - dev | 1 - adm | 2 - usuário comum
+// 0 - dev | 1 - adm | 2 - usuário comum 
 const nomesNivelAcesso = {
   0: "Desenvolvedor",
   1: "Administrador",
@@ -72,7 +72,7 @@ function SidebarItem({ to, text, icon: Icon }) {
   );
 }
 
-function UsuarioRodape() {
+  function UsuarioRodape() {
   const navigate = useNavigate();
 
   const usuario = useAuth((state) => state.usuario);
@@ -82,14 +82,13 @@ function UsuarioRodape() {
   const cargo = nomesNivelAcesso[usuario?.nivel_acesso] ?? usuario?.email;
 
   const handleSairClick = async () => {
-    // const result = await logout();
+    const result = await logout();
 
-    // if (!result.success) {
-    //   toast.add({ description: result.error, type: "error" });
-    //   return;
-    // }
+    if (!result.success) {
+      toast.add({ description: result.error, type: "error" });
+      return;
+    }
 
-    logout();
     toast.add({ description: "Você saiu da conta.", type: "success" });
     navigate("/", { replace: true });
   };

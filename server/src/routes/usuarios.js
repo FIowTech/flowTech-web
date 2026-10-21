@@ -19,4 +19,11 @@ router.post("/sair", authMiddleware, function (req, res) {
   usuarioController.sair(req, res);
 });
 
+
+// === GET | Buscar todos os usuarios de uma empresa=== //
+
+router.get("/:empresaId", authMiddleware, function (req, res){
+  usuarioController.buscar(req, res)
+});
+
 module.exports = router;

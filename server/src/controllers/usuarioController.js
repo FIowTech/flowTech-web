@@ -130,10 +130,39 @@ async function sair(req, res) {
   return res.status(200).json({ message: "Logout realizado." });
 }
 
+async function buscar(req, res) {
+  const { empresa_id } = req.usuario;
+
+  try {
+    const response = await usuarioModel.buscar(empresa_id);
+    if (response.data.length === 0) {
+      return res.status(200).send({
+        message: "Nenhum usuario cadastrado nessa empresa",
+        count: 0,
+        result: [],
+      });
+    }
+
+    res.status(200).json({
+      message: "Usuarios encontrado(s) para a Empresa solicitada.",
+      count: response.data.length,
+      result: response.data,
+    });
+  } catch (error) {
+    const message = error.message || error.sqlMessage;
+    if (message) {
+      res.status(403).json({ message });
+      return;
+    }
+    res.status(500).json({ message: "Erro interno no servidor." });
+  }
+}
+
 module.exports = {
   autenticar,
   cadastrar,
   sair,
+  buscar,
 };
 
 /* [!] OBS: Estamos utilizando o Authorization Header para enviar o token agora. Cookies tornam-se obsoletos.

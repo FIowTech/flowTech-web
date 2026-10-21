@@ -7,51 +7,50 @@ import {
     ProhibitIcon,
     SignOutIcon,
 } from "@phosphor-icons/react";
+import { useAuth } from "@/store/auth-store";
+import { useEffect, useState } from "react";
+import { useFetchUsuario } from "@/hooks/useFetchUsuario";
 
-const tempEmpresaRazaoSocial = "Vias do Brasil S.A.";
-const tempUsuarioLogado = { nome: "Kevin Augusto", cargo: "Supervisor" };
-const membros = [
-  {
-    nome: "Kevin Augusto",
-    iniciais: "KA",
-    cargo: "Supervisor",
-    email: "kevin.augusto595@gmail.com",
-    atual: true,
-  },
-  {
-    nome: "Vitória Nogueira",
-    iniciais: "VN",
-    cargo: "Analista",
-    email: "vivinogueira@gmail.com",
-    atual: false,
-  },
-  {
-    nome: "Marcio Eduardo",
-    iniciais: "ME",
-    cargo: "Técnico",
-    email: "marcio.eduardo@gmail.com",
-    atual: false,
-  },
-  {
-    nome: "Jorge Paulo",
-    iniciais: "JP",
-    cargo: "Supervisor",
-    email: "jppaulo@gmail.com",
-    atual: false,
-  },
-];
+
+const nomesNivelAcesso = {
+  0: "Desenvolvedor",
+  1: "Administrador",
+  2: "Usuário",
+};
+
+
+
+
+
+
+
+
+
 
 export default function EquipePage() {
+
+  const usuario = useAuth((state) => state.usuario);
+  const  cargo = nomesNivelAcesso[usuario?.nivel_acesso] ?? usuario?.email;
+  const authToken = useAuth((state) => state.token);
+  
+
+  const { usuarios } = useFetchUsuario();
+  
+  }
+
+
   return (
     <div className="w-full flex flex-col space-y-6">
       <Card className="bg-background flex-row items-center justify-between px-4">
         <div>
           <h2 className="block text-xs text-muted-foreground">Logado como</h2>
           <h1 className="font-heading text-xl font-semibold">
-            {tempUsuarioLogado.nome}
+          
             <span className="text-primary-hover">
-              {" "}
-              • {tempUsuarioLogado.cargo}
+              {usuario.nome}
+              <a> • </a>
+              {cargo}
+              
             </span>
           </h1>
         </div>
@@ -76,7 +75,7 @@ export default function EquipePage() {
             <h2 className="text-xl font-semibold">
               Membros de{" "}
               <span className="text-primary-hover font-heading font-semibold">
-                {tempEmpresaRazaoSocial}
+                {cargo}
               </span>
             </h2>
 
@@ -147,7 +146,7 @@ export default function EquipePage() {
               <p className="text-sm text-muted-foreground">
                 Criado por{" "}
                 <span className="font-medium text-foreground">
-                  Kevin Augusto
+                  {usuario.nome}
                 </span>{" "}
                 • <span className="text-primary-hover">Encontra-se Ativo</span>
               </p>
@@ -166,4 +165,4 @@ export default function EquipePage() {
       </div>
     </div>
   );
-}
+
