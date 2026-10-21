@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowsCounterClockwiseIcon, EmptyIcon } from "@phosphor-icons/react";
 import { EmbarcadoCard } from "./embarcado-card";
 
-export function EmbarcadosList({ embarcados, refetch }) {
+export function EmbarcadosList({ embarcados, refetchHandler }) {
   return (
     <ul className="w-full flex flex-col space-y-2">
       {embarcados.length > 0 ? (
@@ -26,7 +26,7 @@ export function EmbarcadosList({ embarcados, refetch }) {
 
           <Button
             variant="outline"
-            onClick={refetch}
+            onClick={refetchHandler}
             className="flex items-center gap-2"
           >
             <ArrowsCounterClockwiseIcon />

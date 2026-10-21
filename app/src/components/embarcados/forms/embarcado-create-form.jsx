@@ -10,16 +10,17 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
+import { useFetchComponentes } from "@/hooks/useFetchComponentes";
 import { useAuth } from "@/store/auth-store";
 import { PlusIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
 
 export function EmbarcadoCreateForm() {
   const authToken = useAuth((state) => state.token);
-  const [isLoading, setIsLoading] = useState(false);
+  const { componentes, isLoading } = useFetchComponentes();
 
   const [isSendingForm, setIsSendingForm] = useState(false);
 
@@ -28,7 +29,6 @@ export function EmbarcadoCreateForm() {
     modelo: "",
     apelido: "",
   });
-
   const [endereco, setEndereco] = useState({
     cep: "",
     logradouro: "",
@@ -42,14 +42,16 @@ export function EmbarcadoCreateForm() {
     lat: null,
     lon: null,
   });
-
-  const [componentesMonitorados, setComponentesMonitorados] = useState([]);
+  const [componentesMonitorados, setComponentesMonitorados] = useState(
+    componentes.map((c) => ({
+      ...c,
+      status: 0,
+      limite_max: 0.0,
+      limite_min: 0.0,
+    })),
+  );
 
   const isInformacoesGeraisValid = true;
-  // const isInformacoesGeraisValid =
-  //   informacoesGerais.endereco_mac.length === 17 &&
-  //   informacoesGerais.apelido.length > 0 &&
-  //   informacoesGerais.modelo.length > 0;
 
   const isEnderecoValid = Object.entries(endereco)
     .filter((entry) => entry[0] !== "complemento")
@@ -112,47 +114,6 @@ export function EmbarcadoCreateForm() {
     }
   };
 
-  useEffect(() => {
-    const carregarRecursos = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BASE_API_URL}/componentes`,
-          { method: "GET", headers: { Authorization: `Bearer ${authToken}` } },
-        );
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Não foi possível carregar a lista de componentes monitóraveis",
-          );
-        }
-
-        const componentes = data.result.map((c) => ({
-          ...c,
-          status: 0,
-          limite_max: 0.0,
-          limite_min: 0.0,
-        }));
-        setComponentesMonitorados(componentes);
-      } catch (error) {
-        const message =
-          (error instanceof Error && error.message) ||
-          "Houve um error ao buscar recursos.";
-
-        toast.add({
-          description: message,
-          type: error,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    carregarRecursos();
-  }, [authToken]);
-
   return (
     <Dialog>
       <DialogTrigger
@@ -180,8 +141,13 @@ export function EmbarcadoCreateForm() {
             <InformacoesGeraisFields
               fields={informacoesGerais}
               handler={setInformacoesGerais}
+              editing={false}
             />
-            <EnderecoFields fields={endereco} handler={setEndereco} />
+            <EnderecoFields
+              fields={endereco}
+              handler={setEndereco}
+              editing={false}
+            />
           </div>
 
           {!isLoading && componentesMonitorados && (

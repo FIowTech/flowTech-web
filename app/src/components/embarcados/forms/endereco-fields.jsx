@@ -29,13 +29,14 @@ import { useEffect, useState } from "react";
 const MAX_CHARACTERS_COMPLEMENTO = 60;
 const SENTIDOS = ["Norte", "Sul", "Leste", "Oeste"];
 
-export function EnderecoFields({ fields, handler }) {
+export function EnderecoFields({ fields, handler, editing }) {
   const [isLoading, setIsLoading] = useState(false);
 
-  // todo: bloquear primeira requisição se for edit
   const [cepInput, setCepInput] = useState(mascaraCep(fields.cep) || "");
 
   useEffect(() => {
+    if (editing) return;
+
     const cepLimpo = cepInput.replace(/\D/g, "");
     if (cepLimpo.length !== 8) return;
 
@@ -95,7 +96,7 @@ export function EnderecoFields({ fields, handler }) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [cepInput, handler]);
+  }, [editing, cepInput, handler]);
 
   const handleCepChange = (e) => setCepInput(mascaraCep(e.target.value));
 
@@ -143,7 +144,7 @@ export function EnderecoFields({ fields, handler }) {
             minLength={9}
             maxLength={9}
             placeholder="00000-000"
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -156,7 +157,7 @@ export function EnderecoFields({ fields, handler }) {
             value={fields.numero}
             onChange={handleNumeroChange}
             placeholder="000"
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -170,7 +171,7 @@ export function EnderecoFields({ fields, handler }) {
             type="number"
             value={fields.km}
             onChange={handleKmChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -184,7 +185,7 @@ export function EnderecoFields({ fields, handler }) {
             items={SENTIDOS}
             value={fields.sentido}
             onValueChange={handleSentidoChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           >
             <SelectTrigger className="w-full">
@@ -209,7 +210,7 @@ export function EnderecoFields({ fields, handler }) {
             type="text"
             value={fields.logradouro}
             onChange={handleLogradouroChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -221,7 +222,7 @@ export function EnderecoFields({ fields, handler }) {
             type="text"
             value={fields.bairro}
             onChange={handleBairroChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -254,7 +255,7 @@ export function EnderecoFields({ fields, handler }) {
             type="text"
             value={fields.localidade}
             onChange={handleLocalidadeChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
             required
           />
         </Field>
@@ -268,7 +269,7 @@ export function EnderecoFields({ fields, handler }) {
             items={UF}
             value={fields.uf}
             onValueChange={handleUfChange}
-            disabled={isLoading}
+            disabled={isLoading || editing}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione" />

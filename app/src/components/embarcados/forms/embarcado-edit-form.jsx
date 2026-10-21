@@ -12,14 +12,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { useAuth } from "@/store/auth-store";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
 
 export function EmbarcadoEditForm({ embarcado }) {
   const authToken = useAuth((state) => state.token);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [isSendingForm, setIsSendingForm] = useState(false);
 
@@ -36,10 +35,6 @@ export function EmbarcadoEditForm({ embarcado }) {
   );
 
   const isInformacoesGeraisValid = true;
-  // const isInformacoesGeraisValid =
-  //   informacoesGerais.endereco_mac.length === 17 &&
-  //   informacoesGerais.apelido.length > 0 &&
-  //   informacoesGerais.modelo.length > 0;
 
   const isEnderecoValid = Object.entries(endereco)
     .filter((entry) => entry[0] !== "complemento")
@@ -102,47 +97,6 @@ export function EmbarcadoEditForm({ embarcado }) {
     }
   };
 
-  useEffect(() => {
-    const carregarRecursos = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BASE_API_URL}/componentes`,
-          { method: "GET", headers: { Authorization: `Bearer ${authToken}` } },
-        );
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Não foi possível carregar a lista de componentes monitóraveis",
-          );
-        }
-
-        const componentes = data.result.map((c) => ({
-          ...c,
-          status: 0,
-          limite_max: 0.0,
-          limite_min: 0.0,
-        }));
-        setComponentesMonitorados(componentes);
-      } catch (error) {
-        const message =
-          (error instanceof Error && error.message) ||
-          "Houve um error ao buscar recursos.";
-
-        toast.add({
-          description: message,
-          type: error,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    carregarRecursos();
-  }, [authToken]);
-
   return (
     <Dialog>
       <DialogTrigger
@@ -170,16 +124,19 @@ export function EmbarcadoEditForm({ embarcado }) {
             <InformacoesGeraisFields
               fields={informacoesGerais}
               handler={setInformacoesGerais}
+              editing={true}
             />
-            <EnderecoFields fields={endereco} handler={setEndereco} />
+            <EnderecoFields
+              fields={endereco}
+              handler={setEndereco}
+              editing={true}
+            />
           </div>
 
-          {!isLoading && componentesMonitorados && (
-            <ComponentesMonitoradosFields
-              fields={componentesMonitorados}
-              handler={setComponentesMonitorados}
-            />
-          )}
+          <ComponentesMonitoradosFields
+            fields={componentesMonitorados}
+            handler={setComponentesMonitorados}
+          />
         </form>
 
         <DialogFooter>

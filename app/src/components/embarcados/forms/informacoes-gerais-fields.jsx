@@ -18,7 +18,7 @@ import { mascaraEnderecoMac } from "@/utils/mascaras";
 const MAX_CHARACTERS_APELIDO = 60;
 const MAX_CHARACTERS_MODELO = 60;
 
-export function InformacoesGeraisFields({ fields, handler }) {
+export function InformacoesGeraisFields({ fields, handler, editing }) {
   const handleApelidoChange = (e) => {
     handler((prev) => ({ ...prev, apelido: e.target.value }));
   };
@@ -56,6 +56,7 @@ export function InformacoesGeraisFields({ fields, handler }) {
             placeholder="00:00:00:00:00:00"
             value={fields.endereco_mac}
             onChange={handleEnderecoMacChange}
+            disabled={editing}
             required
           />
         </Field>

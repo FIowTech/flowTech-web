@@ -3,77 +3,18 @@ import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-cre
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { toast } from "@/components/ui/toast";
-import { useAuth } from "@/store/auth-store";
+import { Spinner } from "@/components/ui/spinner";
+import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
+import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
 import { ArrowsCounterClockwiseIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
 
 export default function EmbarcadosPage() {
-  const authToken = useAuth((state) => state.token);
-  const [embarcados, setEmbarcados] = useState([]);
-  const [empresa, setEmpresa] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleRefetch = () => {
-    console.log("atualizando lista de embarcados...");
-  };
-
-  useEffect(() => {
-    const carregarRecursos = async () => {
-      setIsLoading(true);
-
-      try {
-        // 1. Empresa do Usuário logado
-        const responseEmpresa = await fetch(
-          `${import.meta.env.VITE_BASE_API_URL}/empresas`,
-          {
-            method: "GET",
-            headers: { Authorization: `Bearer ${authToken}` },
-          },
-        );
-
-        const empresaData = await responseEmpresa.json();
-        if (!responseEmpresa.ok) {
-          throw new Error(
-            empresaData.message ||
-              "Não foi possível carregar os dados da Empresa",
-          );
-        }
-        setEmpresa(empresaData.result);
-
-        // 2. Lista de Embarcados
-        const responseEmbarcados = await fetch(
-          `${import.meta.env.VITE_BASE_API_URL}/embarcados`,
-          {
-            method: "GET",
-            headers: { Authorization: `Bearer ${authToken}` },
-          },
-        );
-
-        const embarcadosData = await responseEmbarcados.json();
-        if (!responseEmbarcados.ok) {
-          throw new Error(
-            embarcadosData.message ||
-              "Não foi possível carregar os dados dos Embarcados",
-          );
-        }
-        setEmbarcados(embarcadosData.result);
-      } catch (error) {
-        const message =
-          (error instanceof Error && error.message) ||
-          "Houve um error ao buscar recursos.";
-
-        toast.add({
-          description: message,
-          type: error,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    carregarRecursos();
-  }, [authToken]);
+  const { empresa } = useFetchEmpresa();
+  const {
+    embarcados,
+    isLoading: isLoadingEmbarcados,
+    refetch,
+  } = useFetchEmbarcados();
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -110,8 +51,12 @@ export default function EmbarcadosPage() {
             </Button>
           </div>
         </div>
-        {!isLoading && embarcados.length > 0 && (
-          <EmbarcadosList embarcados={embarcados} refetch={handleRefetch} />
+        {isLoadingEmbarcados ? (
+          <div>
+            <Spinner />
+          </div>
+        ) : (
+          <EmbarcadosList embarcados={embarcados} refetchHandler={refetch} />
         )}
       </div>
     </div>
