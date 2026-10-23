@@ -92,26 +92,9 @@ async function existePorEmail(email) {
 }
 
 async function buscar(empresaId) {
-  const instrucaoSql = "SELECT * =FROM usuario WHERE id_usuario = ?;";
+  const instrucaoSql = "SELECT * FROM usuario WHERE  empresa_id = ?;";
   console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
-  const [result] = await database.executar(instrucaoSql, [empresaId])
-  
-/* for (const embarcado of resultEmbarcados) {
-    const resultParametros = await database.executar(
-      `
-      SELECT c.id_componente, c.nome, c.descricao, p.status, p.limite_max, p.limite_min FROM parametro p 
-      JOIN componente c ON p.componente_id = c.id_componente 
-      WHERE embarcado_id = ? AND empresa_id = ?
-      `,
-      [embarcado.id_embarcado, empresaId],
-    );
-
-    embarcadosComParametros.push({
-      ...embarcado,
-      parametros: resultParametros,
-    });
-  }
-*/
+  const result = await database.executar(instrucaoSql, [empresaId])
   return { data: result };
 }
 
