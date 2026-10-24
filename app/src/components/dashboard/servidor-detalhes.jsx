@@ -1,5 +1,10 @@
+import { mascaraCep } from "@/utils/mascaras";
 import { Badge } from "../ui/badge";
 import { Card, CardContent } from "../ui/card";
+
+// Variável mockada e temporária
+// TODO: trocar quando a API passar a devolver CPU, RAM e disco do embarcado
+const tempSistema = { cpu: "24 físicos", ram: "128 GiB", disco: "8 TB" };
 
 export function ServidorDetalhes({ servidor }) {
   if (!servidor) {
@@ -12,7 +17,9 @@ export function ServidorDetalhes({ servidor }) {
     );
   }
 
-  const { endereco, sistema } = servidor;
+  const endereco = servidor.endereco ?? {};
+  // CPU, RAM e disco ainda não existem na API: usa o mock até ela devolver
+  const sistema = servidor.sistema ?? tempSistema;
 
   return (
     <Card size="sm" className="w-full bg-background lg:w-72">
@@ -28,14 +35,14 @@ export function ServidorDetalhes({ servidor }) {
         </Secao>
 
         <Secao titulo="Localização">
-          <Linha label="CEP:" valor={endereco.cep} />
+          <Linha label="CEP:" valor={endereco.cep && mascaraCep(endereco.cep)} />
           <Linha
             label="Localidade:"
-            valor={`${endereco.localidade} - ${endereco.uf}`}
+            valor={juntar(endereco.localidade, endereco.uf, " - ")}
           />
           <Linha
             label="Km/Sentido:"
-            valor={`${endereco.km} / ${endereco.sentido}`}
+            valor={juntar(endereco.km, endereco.sentido, " / ")}
           />
         </Secao>
 
@@ -47,6 +54,10 @@ export function ServidorDetalhes({ servidor }) {
       </CardContent>
     </Card>
   );
+}
+
+function juntar(a, b, separador) {
+  return a && b ? a + separador + b : null;
 }
 
 function Secao({ titulo, children }) {
@@ -65,7 +76,7 @@ function Linha({ label, valor }) {
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
       {label}
-      <Valor>{valor}</Valor>
+      <Valor>{valor || "—"}</Valor>
     </div>
   );
 }

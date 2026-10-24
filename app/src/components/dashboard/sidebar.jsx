@@ -16,7 +16,7 @@ import { NavLink, useNavigate } from "react-router";
 const navitems = [
   { text: "Home", to: "/", icon: HouseIcon },
   { text: "Embarcados", to: "/embarcados", icon: HardDrivesIcon },
-  { text: "Alertas", to: "/alertas", icon: BellIcon },
+  // { text: "Alertas", to: "/alertas", icon: BellIcon },
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
 ];
 

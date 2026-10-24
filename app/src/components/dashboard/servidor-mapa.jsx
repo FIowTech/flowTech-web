@@ -11,6 +11,20 @@ const cores = {
 
 const centroInicial = [-23.5505, -46.6333]; // São Paulo
 
+function pegarCor(status) {
+  return status === 1 ? cores.verde : cores.vermelho;
+}
+
+// o mysql devolve lat/lon como texto, ex.: "-23.5505".
+// aqui convertemos para número e devolvemos null se o servidor não tiver coordenada.
+function pegarCoordenada(servidor) {
+  const { lat, lon } = servidor.endereco ?? {};
+
+  if (lat == null || lon == null) return null;
+
+  return [Number(lat), Number(lon)];
+}
+
 // O Leaflet usa imagens como marcador. Aqui a gente troca por uma bolinha colorida em HTML.
 // O servidor selecionado fica maior que os outros.
 function criarIcone(status, selecionado) {
@@ -19,7 +33,7 @@ function criarIcone(status, selecionado) {
   return L.divIcon({
     className: "",
     iconSize: [tamanho, tamanho],
-    html: `<span style="display:block;width:${tamanho}px;height:${tamanho}px;border-radius:9999px;background:${cores[status]};border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>`,
+    html: `<span style="display:block;width:${tamanho}px;height:${tamanho}px;border-radius:9999px;background:${pegarCor(status)};border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>`,
   });
 }
 
@@ -30,10 +44,10 @@ function AjustarMapa({ servidores }) {
 
   // Roda quando a lista de servidores muda (ex.: o usuário digitou na busca)
   useEffect(() => {
-    // Só servidores que têm coordenada (lat/lon podem ser NULL no banco)
+    // Só servidores que têm coordenada
     const pontos = servidores
-      .filter((servidor) => servidor.endereco.lat != null)
-      .map((servidor) => [servidor.endereco.lat, servidor.endereco.lon]);
+      .map(pegarCoordenada)
+      .filter((coordenada) => coordenada !== null);
 
     if (pontos.length === 0) return;
 
@@ -52,7 +66,6 @@ function AjustarMapa({ servidores }) {
 
 export function ServidorMapa({ servidores, selecionadoId, onSelecionar }) {
   return (
-    // "isolate" evita que o mapa fique por cima de menus e avisos da página
     <div className="isolate h-105 overflow-hidden rounded-xl ring-1 ring-foreground/10 lg:h-full lg:min-h-105">
       <MapContainer center={centroInicial} zoom={10} className="size-full">
         <TileLayer
@@ -63,14 +76,15 @@ export function ServidorMapa({ servidores, selecionadoId, onSelecionar }) {
         <AjustarMapa servidores={servidores} />
 
         {servidores.map((servidor) => {
-          if (servidor.endereco.lat == null) return null;
+          const posicao = pegarCoordenada(servidor);
+          if (!posicao) return null;
 
           const selecionado = servidor.id_embarcado === selecionadoId;
 
           return (
             <Marker
               key={servidor.id_embarcado}
-              position={[servidor.endereco.lat, servidor.endereco.lon]}
+              position={posicao}
               icon={criarIcone(servidor.status, selecionado)}
               eventHandlers={{ click: () => onSelecionar(servidor.id_embarcado) }}
             />

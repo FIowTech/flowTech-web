@@ -7,68 +7,16 @@ import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
 import { ServidorMapa } from "@/components/dashboard/servidor-mapa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Relogio } from "@/components/relogio";
+import { Spinner } from "@/components/ui/spinner";
+import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
+import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
+import { useMetricasMock } from "@/hooks/useMetricasMock";
 import { useAuth } from "@/store/auth-store";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-// TODO: trocar pela API (GET /embarcados) quando o endpoint retornar o
-// endereço e as métricas junto com o embarcado.
-const tempEmpresaRazaoSocial = "Vision Center de Vias do Brasil S.A.";
+// Variáveis mockadas e temporárias
 const tempAtualizadoEm = "16:15";
-
-const tempServidores = [
-  {
-    id_embarcado: 101,
-    apelido: "SRV-101",
-    modelo: "PARD-SR1180",
-    endereco_mac: "1B:2B:3C:4D:5E:6F",
-    status: "vermelho",
-    endereco: {
-      cep: "0000-000",
-      localidade: "São Paulo",
-      uf: "SP",
-      km: "101",
-      sentido: "Sul",
-      lat: -23.5505,
-      lon: -46.6333,
-    },
-    sistema: { cpu: "24 físicos / 24 lógicos", ram: "24 GiB", disco: "1 TB" },
-  },
-  {
-    id_embarcado: 102,
-    apelido: "SRV-102",
-    modelo: "PARD-SR1180",
-    endereco_mac: "1B:2B:3C:4D:5E:70",
-    status: "verde",
-    endereco: {
-      cep: "0000-000",
-      localidade: "Guarulhos",
-      uf: "SP",
-      km: "215",
-      sentido: "Norte",
-      lat: -23.4543,
-      lon: -46.5333,
-    },
-    sistema: { cpu: "16 físicos / 32 lógicos", ram: "32 GiB", disco: "2 TB" },
-  },
-  {
-    id_embarcado: 103,
-    apelido: "SRV-103",
-    modelo: "PARD-SR1200",
-    endereco_mac: "1B:2B:3C:4D:5E:71",
-    status: "amarelo",
-    endereco: {
-      cep: "0000-000",
-      localidade: "Osasco",
-      uf: "SP",
-      km: "18",
-      sentido: "Leste",
-      lat: -23.5329,
-      lon: -46.7917,
-    },
-    sistema: { cpu: "8 físicos / 16 lógicos", ram: "16 GiB", disco: "1 TB" },
-  },
-];
 
 const cores = {
   verde: "#36c876",
@@ -76,66 +24,49 @@ const cores = {
   cinza: "#515c54",
 };
 
-// métricas do servidor selecionado (componentes: cpu_usage_pct, ram_usage_mb,
-// download_mbps, upload_mbps, disk_usage_mb)
-const tempHorarios = [
-  "10:00", "10:05", "10:10", "10:15", "10:20", "10:25",
-  "10:30", "10:35", "10:40", "10:45", "10:50", "10:55",
-];
-
-const tempMetricas = {
-  cpu: {
-    atual: "62%",
-    valores: [40, 45, 52, 48, 60, 66, 58, 70, 64, 62, 68, 62],
-  },
-  ram: {
-    atual: "18,4 GiB",
-    valores: [14, 14.2, 15, 16, 16.1, 17, 17.3, 18, 18.2, 18.1, 18.6, 18.4],
-  },
-  rede: {
-    atual: "↓ 92 Mbps · ↑ 31 Mbps",
-    download: [80, 85, 90, 70, 95, 100, 88, 92, 97, 90, 94, 92],
-    upload: [20, 25, 22, 30, 28, 35, 31, 29, 33, 30, 32, 31],
-  },
-  disco: {
-    dias: ["OUT 1", "OUT 2", "OUT 3", "OUT 4", "OUT 5", "OUT 6", "OUT 7"],
-    usado: [380, 385, 391, 398, 402, 407, 412],
-    capacidade: 1000,
-  },
-};
-
-const tempResumoEmbarcados = { verde: 7, amarelo: 3, vermelho: 2, total: 12 };
 const tempResumoAlertas = { amarelo: 3, vermelho: 2, total: 24 };
 const tempResumoCapturas = { recebidas: 100, esperadas: 100, porticos: 5 };
 
 export default function HomePage() {
   const usuario = useAuth((state) => state.usuario);
+  const { empresa } = useFetchEmpresa();
+  const { embarcados, isLoading } = useFetchEmbarcados();
+  // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
+  const metricas = useMetricasMock();
 
   const [busca, setBusca] = useState("");
-  const [selecionadoId, setSelecionadoId] = useState(
-    tempServidores[0].id_embarcado,
-  );
+  const [selecionadoId, setSelecionadoId] = useState(null);
 
   const handleBuscaChange = (e) => setBusca(e.target.value);
 
   // média do disco: soma tudo e divide pela quantidade de dias
   let somaDisco = 0;
-  for (const valor of tempMetricas.disco.usado) {
+  for (const valor of metricas.disco.usado) {
     somaDisco += valor;
   }
-  const mediaDisco = (somaDisco / tempMetricas.disco.usado.length).toFixed(1);
+  const mediaDisco = (somaDisco / metricas.disco.usado.length).toFixed(1);
 
-  const termo = busca.trim().toLowerCase();
-  const servidoresFiltrados = tempServidores.filter((servidor) => {
-    const texto =
-      servidor.apelido + " " + servidor.modelo + " " + servidor.endereco.localidade;
+  // useMemo guarda o resultado e só refaz o filtro quando a busca ou os dados mudam.
+  // Sem isso, o mapa se reenquadraria a cada clique em um marcador.
+  const servidoresFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
 
-    return texto.toLowerCase().includes(termo);
-  });
+    return embarcados.filter((servidor) => {
+      const endereco = servidor.endereco ?? {};
+      const texto = [servidor.apelido, servidor.modelo, endereco.localidade].join(" ");
 
-  const selecionado = tempServidores.find(
-    (servidor) => servidor.id_embarcado === selecionadoId,
-  );
+      return texto.toLowerCase().includes(termo);
+    });
+  }, [busca, embarcados]);
+
+  // O servidor clicado; se ninguém clicou ainda, usa o primeiro da lista
+  const selecionado =
+    embarcados.find((servidor) => servidor.id_embarcado === selecionadoId) ??
+    embarcados[0];
+
+  // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
+  const totalVerde = embarcados.filter((servidor) => servidor.status === 1).length;
+  const totalVermelho = embarcados.length - totalVerde;
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -143,7 +74,7 @@ export default function HomePage() {
       <div className="bg-background border border-border p-4 rounded-md w-full flex items-center justify-between">
         <div>
           <p>Olá, {usuario?.nome ?? "usuário"}!</p>
-          <h2 className="text-xl">{tempEmpresaRazaoSocial}</h2>
+          <h2 className="text-xl">{empresa?.razao_social}</h2>
         </div>
 
         <Relogio />
@@ -157,10 +88,10 @@ export default function HomePage() {
           tom="warning"
           atualizadoEm={tempAtualizadoEm}
         >
-          <StatusCount status="verde" quantidade={tempResumoEmbarcados.verde} />
-          <StatusCount status="amarelo" quantidade={tempResumoEmbarcados.amarelo} />
-          <StatusCount status="vermelho" quantidade={tempResumoEmbarcados.vermelho} />
-          <ResumoTotal total={tempResumoEmbarcados.total} />
+          <StatusCount status="verde" quantidade={totalVerde} />
+          <StatusCount status="amarelo" quantidade={0} />
+          <StatusCount status="vermelho" quantidade={totalVermelho} />
+          <ResumoTotal total={embarcados.length} />
         </ResumoCard>
 
         <ResumoCard
@@ -191,10 +122,17 @@ export default function HomePage() {
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <ServidorBusca value={busca} onChange={handleBuscaChange} />
 
-          <ServidorMapa
-            servidores={servidoresFiltrados}
-            onSelecionar={setSelecionadoId}
-          />
+          {isLoading ? (
+            <div className="flex h-105 items-center justify-center rounded-xl bg-background ring-1 ring-foreground/10 lg:h-full lg:min-h-105">
+              <Spinner />
+            </div>
+          ) : (
+            <ServidorMapa
+              servidores={servidoresFiltrados}
+              selecionadoId={selecionado?.id_embarcado}
+              onSelecionar={setSelecionadoId}
+            />
+          )}
         </div>
 
         <ServidorDetalhes servidor={selecionado} />
@@ -207,11 +145,11 @@ export default function HomePage() {
         </CardHeader>
 
         <CardContent className="grid gap-4 lg:grid-cols-2">
-          <MetricaPainel titulo="Métricas CPU" valor={tempMetricas.cpu.atual}>
+          <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
             <GraficoLinha
-              labels={tempHorarios}
+              labels={metricas.horarios}
               linhas={[
-                { nome: "Uso de CPU", valores: tempMetricas.cpu.valores, cor: cores.verde },
+                { nome: "Uso de CPU", valores: metricas.cpu.valores, cor: cores.verde },
               ]}
               unidade="%"
               max={100}
@@ -219,23 +157,23 @@ export default function HomePage() {
             />
           </MetricaPainel>
 
-          <MetricaPainel titulo="Métricas RAM" valor={tempMetricas.ram.atual}>
+          <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
             <GraficoLinha
-              labels={tempHorarios}
+              labels={metricas.horarios}
               linhas={[
-                { nome: "Uso de RAM", valores: tempMetricas.ram.valores, cor: cores.amarelo },
+                { nome: "Uso de RAM", valores: metricas.ram.valores, cor: cores.amarelo },
               ]}
               unidade="GiB"
               area
             />
           </MetricaPainel>
 
-          <MetricaPainel titulo="Métricas Rede" valor={tempMetricas.rede.atual}>
+          <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
             <GraficoLinha
-              labels={tempHorarios}
+              labels={metricas.horarios}
               linhas={[
-                { nome: "Download", valores: tempMetricas.rede.download, cor: cores.verde },
-                { nome: "Upload", valores: tempMetricas.rede.upload, cor: cores.cinza },
+                { nome: "Download", valores: metricas.rede.download, cor: cores.verde },
+                { nome: "Upload", valores: metricas.rede.upload, cor: cores.cinza },
               ]}
               unidade="Mbps"
             />
@@ -244,15 +182,15 @@ export default function HomePage() {
           <MetricaPainel
             titulo="Métricas Disco"
             descricao="Média de espaço usado neste mês"
-            valor={mediaDisco + " GiB"}
+            valor={mediaDisco + " GB"}
           >
             <GraficoLinha
-              labels={tempMetricas.disco.dias}
+              labels={metricas.disco.dias}
               linhas={[
-                { nome: "Disco usado", valores: tempMetricas.disco.usado, cor: cores.verde },
+                { nome: "Disco usado", valores: metricas.disco.usado, cor: cores.verde },
               ]}
-              unidade="GiB"
-              max={tempMetricas.disco.capacidade}
+              unidade="GB"
+              max={metricas.disco.capacidade}
               area
             />
           </MetricaPainel>
