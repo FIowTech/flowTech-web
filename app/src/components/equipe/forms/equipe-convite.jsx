@@ -23,14 +23,12 @@ import { useAuth } from "@/store/auth-store";
 import { PlusIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
-
-
-// Data de hoje no formato yyyy-mm-dd (usado como mínimo do input de data)
-const hojeISO = () => new Date().toISOString().split("T")[0];
-
-export function MembroCreateForm({ empresaId, onSuccess }) {
+export function MembroCreateForm() {
   const authToken = useAuth((state) => state.token);
   const usuario = useAuth((state) => state.usuario);
+
+  // Data de hoje no formato yyyy-mm-dd (usado como mínimo do input de data)
+  const hojeISO = () => new Date().toISOString().split("T")[0];
 
   const [open, setOpen] = useState(false);
   const [isSendingForm, setIsSendingForm] = useState(false);
@@ -39,6 +37,7 @@ export function MembroCreateForm({ empresaId, onSuccess }) {
     qtd_usos_max: 1,
     data_expiracao: "",
   });
+
   const isFormValid =
     Number.isInteger(convite.qtd_usos_max) &&
     convite.qtd_usos_max >= 1 &&
@@ -58,17 +57,16 @@ export function MembroCreateForm({ empresaId, onSuccess }) {
     setIsSendingForm(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/criar`,
+        `${import.meta.env.VITE_BASE_API_URL}/codigos`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${authToken}`,
           },
-          // O "codigo" é gerado pelo backend (garante que seja único)
           body: JSON.stringify({
-            id_usuario: usuario?.id,
-            empresa_id: empresaId,
+            id_usuario: usuario.id_usuario,
+            empresa_id: usuario.empresa_id,
             qtd_usos_max: convite.qtd_usos_max,
             data_expiracao: convite.data_expiracao,
           }),
@@ -83,7 +81,6 @@ export function MembroCreateForm({ empresaId, onSuccess }) {
       toast.add({ description: data.message, type: "success" });
       setConvite({ qtd_usos_max: 1, data_expiracao: "" });
       setOpen(false);
-      onSuccess?.();
     } catch (error) {
       const message =
         (error instanceof Error && error.message) ||
@@ -124,7 +121,8 @@ export function MembroCreateForm({ empresaId, onSuccess }) {
           <FieldSet className="min-w-0">
             <FieldLegend>Dados do código</FieldLegend>
             <FieldDescription>
-              Defina quantas vezes o código pode ser usado e até quando ele vale.
+              Defina quantas vezes o código pode ser usado e até quando ele
+              vale.
             </FieldDescription>
 
             <FieldGroup>
