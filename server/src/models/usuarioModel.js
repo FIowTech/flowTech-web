@@ -94,18 +94,9 @@ async function existePorEmail(email) {
 async function buscar(empresaId) {
   const instrucaoSql = "SELECT * FROM usuario WHERE  empresa_id = ?;";
   console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
-  const result = await database.executar(instrucaoSql, [empresaId])
+  const result = await database.executar(instrucaoSql, [empresaId]);
   return { data: result };
 }
-
-
-async function criar(usuarioId, empresaId,codigo,qtd_usos_max,data_expiracao) {
-  const instrucaoSql = "INSERT INTO codigo_acesso (usuario_id, empresa_id, codigo, status, qtd_usos_max, data_expiracao ) VALUES ( ?, ? , ?, ?, ?)";
-  console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
-  const result = await database.executar(instrucaoSql, [usuarioId],[empresaId],[codigo],[qtd_usos_max],[data_expiracao])
-  return { data: result };
-}
-
 
 module.exports = {
   autenticar,

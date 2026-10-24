@@ -20,16 +20,9 @@ router.post("/sair", authMiddleware, function (req, res) {
   usuarioController.sair(req, res);
 });
 
-
 // === GET | Buscar todos os usuarios de uma empresa=== //
-
-router.get("/", authMiddleware, function (req, res){
-  usuarioController.buscar(req, res)
+router.get("/", authMiddleware, function (req, res) {
+  usuarioController.buscar(req, res);
 });
-
-// === POST | Criar novo codigo === //
-router.post("/criar", authMiddleware, function (req, res){
-  usuarioController.convidar(req,res)
-})
 
 module.exports = router;

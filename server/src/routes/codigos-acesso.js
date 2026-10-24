@@ -17,4 +17,14 @@ router.get("/", function (req, res) {
   }
 });
 
+// === GET | Buscar por Id === //
+router.get("/:id_codigo", function (req, res) {
+  codigoAcessoController.buscarPorId(req, res);
+});
+
+// === PUT | Revogar por Id === //
+router.put("/:id_codigo", function (req, res) {
+  codigoAcessoController.revogar(req, res);
+});
+
 module.exports = router;

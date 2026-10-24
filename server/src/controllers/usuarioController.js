@@ -158,99 +158,9 @@ async function buscar(req, res) {
   }
 }
 
-async function criar(req, res) {
-
-  
-  const {usuario_id ,empresa_id, nivel_acesso } = req.usuario;
-  const { qtd_usos_max, data_expiracao } = req.body;
-  
-  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
-  if (nivel_acesso > 1) {
-    return res
-    .status(403)
-    .send({ message: "Você não tem permissão para realizar esta ação." });
-  }
-  
-  if(isMissing(usuario_id)){
-    return res
-    .status(400)
-    .json({ message: "ID do Usuario não foi passado na requisição"})
-  }
-  if (isMissing(empresa_id)) {
-    return res
-    .status(400)
-    .json({ message: "ID da Empresa não foi passado na requisição." });
-  }
-  
-  if (isMissing(nome)) {
-    return res
-    .status(400)
-    .json({ message: "O campo 'nome' está faltando." });
-  }
- 
-  
-  if (isMissing(qtd_usos_max)) {
-    return res
-    .status(400)
-    .json({ message: "O campo 'componentes' está faltando." });
-  }
-  try {
-    // 1. Verifica se Email informado está em uso
-    if(isMissing(data_expiracao)){
-      return res
-      .status(400)
-      .json({ message: " O campo 'data_limite' está faltando"})
-    }
-
-      // 2. Inicia registro de Servidor
-      const response = await usuarioModel.convidar(
-        usuario_id,
-        empresa_id,
-        qtd_usos_max,
-        data_expiracao,
-
-      );
-      
-      res.status(201).json({
-        message: "Convite criado com sucesso",
-        result: response.data,
-      });
-    } catch (error) {
-      const message = error.message || error.sqlMessage;
-      if (message) {
-        res.status(403).json({ message });
-        return;
-      }
-      res.status(500).json({ message: "Erro interno no servidor." });
-    }
-  }
-  
-  
-
 module.exports = {
   autenticar,
   cadastrar,
   sair,
   buscar,
-  criar,
 };
-
-/* [!] OBS: Estamos utilizando o Authorization Header para enviar o token agora. Cookies tornam-se obsoletos.
-
-Cookie HttpOnly: inacessível via frontend e contém informações sensíveis
-res.cookie("access_token", token, {
-  httpOnly: true,
-  secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
-  sameSite: "lax",
-  maxAge: 24 * 60 * 60 * 1000,
-  path: "/",
-});
-
-Cookie Autenticado: acessível via frontend, contém apenas um boolean.
-res.cookie("autenticado", true, {
-  httpOnly: false,
-  secure: process.env.AMBIENTE_PROCESSO !== "desenvolvimento",
-  sameSite: "lax",
-  path: "/",
-});
-*/
