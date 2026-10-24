@@ -30,7 +30,7 @@ function ListaMembros({ empresa, usuarioLogado }) {
           </span>
         </h2>
 
-        <MembroCreateForm />
+      <MembroCreateForm empresaId={empresa.id} />
       </div>
 
       <div className="space-y-3">

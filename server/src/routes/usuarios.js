@@ -27,8 +27,8 @@ router.get("/", authMiddleware, function (req, res){
   usuarioController.buscar(req, res)
 });
 
-
-router.get("/convidar", authMiddleware, function (req, res){
+// === POST | Criar novo codigo === //
+router.post("/criar", authMiddleware, function (req, res){
   usuarioController.convidar(req,res)
 })
 

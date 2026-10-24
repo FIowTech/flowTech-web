@@ -158,11 +158,11 @@ async function buscar(req, res) {
   }
 }
 
-async function convidar(req, res) {
+async function criar(req, res) {
 
   
-  const { empresa_id, nivel_acesso } = req.usuario;
-  const { nome, email,senha, cargo } = req.body;
+  const {usuario_id ,empresa_id, nivel_acesso } = req.usuario;
+  const { qtd_usos_max, data_expiracao } = req.body;
   
   // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
   if (nivel_acesso > 1) {
@@ -171,6 +171,11 @@ async function convidar(req, res) {
     .send({ message: "Você não tem permissão para realizar esta ação." });
   }
   
+  if(isMissing(usuario_id)){
+    return res
+    .status(400)
+    .json({ message: "ID do Usuario não foi passado na requisição"})
+  }
   if (isMissing(empresa_id)) {
     return res
     .status(400)
@@ -184,50 +189,30 @@ async function convidar(req, res) {
   }
  
   
-  if (isMissing(email)) {
+  if (isMissing(qtd_usos_max)) {
     return res
     .status(400)
     .json({ message: "O campo 'componentes' está faltando." });
   }
-  
-  if (!isEmailValid(email)) {
-    res
-    .status(400)
-    .send({ message: "O endereço de e-mail fornecido está inválido." });
-    return;
-  }
-  
-  if (!isPasswordValid(senha)) {
-    return res.status(400).send({
-      message: "A senha fornecida está inválida.",
-    });
-  }
-  
   try {
     // 1. Verifica se Email informado está em uso
-    const emailEmUso = await usuarioModel.existePorEmail(email);
-    if (emailEmUso) {
+    if(isMissing(data_expiracao)){
       return res
-      .status(409)
-      .json({ message: "Email informado já está em uso." });
-    
+      .status(400)
+      .json({ message: " O campo 'data_limite' está faltando"})
     }
-    
-    
-      
-      
+
       // 2. Inicia registro de Servidor
       const response = await usuarioModel.convidar(
+        usuario_id,
         empresa_id,
-        nome,
-        email,
-        senha,
-        cargo,
-        
+        qtd_usos_max,
+        data_expiracao,
+
       );
       
       res.status(201).json({
-        message: "Membro convidado com sucesso!",
+        message: "Convite criado com sucesso",
         result: response.data,
       });
     } catch (error) {
@@ -247,7 +232,7 @@ module.exports = {
   cadastrar,
   sair,
   buscar,
-  convidar,
+  criar,
 };
 
 /* [!] OBS: Estamos utilizando o Authorization Header para enviar o token agora. Cookies tornam-se obsoletos.

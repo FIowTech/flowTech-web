@@ -99,10 +99,10 @@ async function buscar(empresaId) {
 }
 
 
-async function convidar(empresaId, nome, email, senha, cargo) {
-  const instrucaoSql = "INSERT  FROM usuario WHERE  empresa_id = ?;";
+async function criar(usuarioId, empresaId,codigo,qtd_usos_max,data_expiracao) {
+  const instrucaoSql = "INSERT INTO codigo_acesso (usuario_id, empresa_id, codigo, status, qtd_usos_max, data_expiracao ) VALUES ( ?, ? , ?, ?, ?)";
   console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
-  const result = await database.executar(instrucaoSql, [empresaId])
+  const result = await database.executar(instrucaoSql, [usuarioId],[empresaId],[codigo],[qtd_usos_max],[data_expiracao])
   return { data: result };
 }
 

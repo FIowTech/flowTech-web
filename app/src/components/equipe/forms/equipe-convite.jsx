@@ -17,14 +17,6 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { useAuth } from "@/store/auth-store";
@@ -32,36 +24,32 @@ import { PlusIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 
-const CARGOS = ["Administrador", "Usuario",];
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const senhaRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#.])[A-Za-z\d@$!%*?&#.]{8,}$/;
+// Data de hoje no formato yyyy-mm-dd (usado como mínimo do input de data)
+const hojeISO = () => new Date().toISOString().split("T")[0];
 
-export function MembroCreateForm({ onSuccess }) {
+export function MembroCreateForm({ empresaId, onSuccess }) {
   const authToken = useAuth((state) => state.token);
+  const usuario = useAuth((state) => state.usuario);
 
   const [open, setOpen] = useState(false);
   const [isSendingForm, setIsSendingForm] = useState(false);
 
-  const [membro, setMembro] = useState({
-    nome: "",
-    email: "",
-    senha: "",
-    cargo: "",
+  const [convite, setConvite] = useState({
+    qtd_usos_max: 1,
+    data_expiracao: "",
   });
-
   const isFormValid =
-    membro.nome.trim().length > 0 &&
-    emailRegex.test(membro.email) &&
-    senhaRegex.test(membro.senha) &&
-    membro.cargo !== "";
+    Number.isInteger(convite.qtd_usos_max) &&
+    convite.qtd_usos_max >= 1 &&
+    convite.data_expiracao !== "" &&
+    convite.data_expiracao >= hojeISO();
 
-  const handleChange = (campo) => (e) =>
-    setMembro((prev) => ({ ...prev, [campo]: e.target.value }));
+  const handleQtdUsosChange = (e) =>
+    setConvite((prev) => ({ ...prev, qtd_usos_max: Number(e.target.value) }));
 
-  const handleCargoChange = (value) =>
-    setMembro((prev) => ({ ...prev, cargo: value }));
+  const handleDataExpiracaoChange = (e) =>
+    setConvite((prev) => ({ ...prev, data_expiracao: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,14 +58,20 @@ export function MembroCreateForm({ onSuccess }) {
     setIsSendingForm(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/usuarios/convidar`,
+        `${import.meta.env.VITE_BASE_API_URL}/criar`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${authToken}`,
           },
-          body: JSON.stringify(membro),
+          // O "codigo" é gerado pelo backend (garante que seja único)
+          body: JSON.stringify({
+            id_usuario: usuario?.id,
+            empresa_id: empresaId,
+            qtd_usos_max: convite.qtd_usos_max,
+            data_expiracao: convite.data_expiracao,
+          }),
         },
       );
 
@@ -87,13 +81,13 @@ export function MembroCreateForm({ onSuccess }) {
       }
 
       toast.add({ description: data.message, type: "success" });
-      setMembro({ nome: "", email: "", cargo: "" });
+      setConvite({ qtd_usos_max: 1, data_expiracao: "" });
       setOpen(false);
-      onSuccess?.(); 
+      onSuccess?.();
     } catch (error) {
       const message =
         (error instanceof Error && error.message) ||
-        "Houve um erro ao adicionar o membro.";
+        "Houve um erro ao criar o código.";
       toast.add({ description: message, type: "error" });
     } finally {
       setIsSendingForm(false);
@@ -104,84 +98,66 @@ export function MembroCreateForm({ onSuccess }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button className="flex items-center gap-2 cursor-pointer">
+          <Button
+            type="button"
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            Convidar Membro
             <PlusIcon />
-            Adicionar membro
           </Button>
         }
       />
       <DialogContent className="sm:max-w-lg max-h-[90vh] no-scrollbar overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Adicionar membro</DialogTitle>
+          <DialogTitle>Criar código de convite</DialogTitle>
           <DialogDescription>
-            O membro receberá um convite para participar da sua equipe.
+            O código será gerado automaticamente. O compartilhamento fica por
+            conta dos funcionários.
           </DialogDescription>
         </DialogHeader>
 
         <form
-          id="criar-membro-form"
+          id="criar-convite-form"
           onSubmit={handleSubmit}
           className="flex flex-col gap-8"
         >
           <FieldSet className="min-w-0">
-            <FieldLegend>Dados do membro</FieldLegend>
+            <FieldLegend>Dados do código</FieldLegend>
             <FieldDescription>
-              Use o e-mail que a pessoa utilizará para acessar o sistema.
+              Defina quantas vezes o código pode ser usado e até quando ele vale.
             </FieldDescription>
 
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="criar-membro-nome">
-                  Nome <span className="text-destructive font-bold">*</span>
+                <FieldLabel htmlFor="criar-convite-usos">
+                  Quantidade máxima de usos{" "}
+                  <span className="text-destructive font-bold">*</span>
                 </FieldLabel>
                 <Input
-                  id="criar-membro-nome"
-                  type="text"
-                  placeholder="Maria Silva"
-                  value={membro.nome}
-                  onChange={handleChange("nome")}
+                  id="criar-convite-usos"
+                  className="max-w-xs"
+                  type="number"
+                  min={1}
+                  value={convite.qtd_usos_max}
+                  onChange={handleQtdUsosChange}
                   required
                 />
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="criar-membro-email">
-                  E-mail <span className="text-destructive font-bold">*</span>
+                <FieldLabel htmlFor="criar-convite-expiracao">
+                  Data de expiração{" "}
+                  <span className="text-destructive font-bold">*</span>
                 </FieldLabel>
                 <Input
-                  id="criar-membro-email"
-                  type="email"
-                  placeholder="maria@empresa.com"
-                  value={membro.email}
-                  onChange={handleChange("email")}
+                  id="criar-convite-expiracao"
+                  className="max-w-xs"
+                  type="date"
+                  min={hojeISO()}
+                  value={convite.data_expiracao}
+                  onChange={handleDataExpiracaoChange}
                   required
                 />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="criar-membro-cargo">
-                  Cargo <span className="text-destructive font-bold">*</span>
-                </FieldLabel>
-                <Select
-                  id="criar-membro-cargo"
-                  items={CARGOS}
-                  value={membro.cargo}
-                  onValueChange={handleCargoChange}
-                  required
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {CARGOS.map((item) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
               </Field>
             </FieldGroup>
           </FieldSet>
@@ -190,15 +166,15 @@ export function MembroCreateForm({ onSuccess }) {
         <DialogFooter>
           <Button
             type="submit"
-            form="criar-membro-form"
+            form="criar-convite-form"
             disabled={isSendingForm || !isFormValid}
           >
             {isSendingForm ? (
               <span className="flex items-center space-x-2">
-                <Spinner /> Adicionando
+                <Spinner /> Criando
               </span>
             ) : (
-              "Adicionar"
+              "Criar código"
             )}
           </Button>
         </DialogFooter>
