@@ -99,6 +99,14 @@ async function buscar(empresaId) {
 }
 
 
+async function convidar(empresaId, nome, email, senha, cargo) {
+  const instrucaoSql = "INSERT  FROM usuario WHERE  empresa_id = ?;";
+  console.log("[usuarioModel] Executando a instrução SQL: \n" + instrucaoSql);
+  const result = await database.executar(instrucaoSql, [empresaId])
+  return { data: result };
+}
+
+
 module.exports = {
   autenticar,
   cadastrar,

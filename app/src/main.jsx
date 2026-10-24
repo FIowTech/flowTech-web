@@ -5,7 +5,7 @@ import DashboardLayout from "@/pages/dashboard-layout";
 import EmbarcadosDetailsPage from "@/pages/embarcado-details-page";
 import EmbarcadosPage from "@/pages/embarcados-page";
 import EmpresaPage from "@/pages/empresa-page";
-import EquipePage from "@/pages/equipe-page";
+import EquipePage from "@/components/equipe/equipe-page";
 import HomePage from "@/pages/home-page";
 import LandingPage from "@/pages/landing-page";
 import LoginPage from "@/pages/login-page";

@@ -158,11 +158,96 @@ async function buscar(req, res) {
   }
 }
 
+async function convidar(req, res) {
+
+  
+  const { empresa_id, nivel_acesso } = req.usuario;
+  const { nome, email,senha, cargo } = req.body;
+  
+  // dado que: 0 - desenvolvedor | 1 - administrador | 2 em diante - usuário comum
+  if (nivel_acesso > 1) {
+    return res
+    .status(403)
+    .send({ message: "Você não tem permissão para realizar esta ação." });
+  }
+  
+  if (isMissing(empresa_id)) {
+    return res
+    .status(400)
+    .json({ message: "ID da Empresa não foi passado na requisição." });
+  }
+  
+  if (isMissing(nome)) {
+    return res
+    .status(400)
+    .json({ message: "O campo 'nome' está faltando." });
+  }
+ 
+  
+  if (isMissing(email)) {
+    return res
+    .status(400)
+    .json({ message: "O campo 'componentes' está faltando." });
+  }
+  
+  if (!isEmailValid(email)) {
+    res
+    .status(400)
+    .send({ message: "O endereço de e-mail fornecido está inválido." });
+    return;
+  }
+  
+  if (!isPasswordValid(senha)) {
+    return res.status(400).send({
+      message: "A senha fornecida está inválida.",
+    });
+  }
+  
+  try {
+    // 1. Verifica se Email informado está em uso
+    const emailEmUso = await usuarioModel.existePorEmail(email);
+    if (emailEmUso) {
+      return res
+      .status(409)
+      .json({ message: "Email informado já está em uso." });
+    
+    }
+    
+    
+      
+      
+      // 2. Inicia registro de Servidor
+      const response = await usuarioModel.convidar(
+        empresa_id,
+        nome,
+        email,
+        senha,
+        cargo,
+        
+      );
+      
+      res.status(201).json({
+        message: "Membro convidado com sucesso!",
+        result: response.data,
+      });
+    } catch (error) {
+      const message = error.message || error.sqlMessage;
+      if (message) {
+        res.status(403).json({ message });
+        return;
+      }
+      res.status(500).json({ message: "Erro interno no servidor." });
+    }
+  }
+  
+  
+
 module.exports = {
   autenticar,
   cadastrar,
   sair,
   buscar,
+  convidar,
 };
 
 /* [!] OBS: Estamos utilizando o Authorization Header para enviar o token agora. Cookies tornam-se obsoletos.

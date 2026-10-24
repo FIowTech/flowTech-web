@@ -1,6 +1,7 @@
 const express = require("express");
 const usuarioController = require("../controllers/usuarioController");
 const authMiddleware = require("../middlewares/auth");
+const { route } = require("./embarcados");
 
 const router = express.Router();
 
@@ -25,5 +26,10 @@ router.post("/sair", authMiddleware, function (req, res) {
 router.get("/", authMiddleware, function (req, res){
   usuarioController.buscar(req, res)
 });
+
+
+router.get("/convidar", authMiddleware, function (req, res){
+  usuarioController.convidar(req,res)
+})
 
 module.exports = router;

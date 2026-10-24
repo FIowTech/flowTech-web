@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   PencilSimpleIcon,
-  PlusIcon,
   ProhibitIcon,
   SignOutIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/store/auth-store";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
+import { MembroCreateForm } from "./forms/equipe-convite";
 import { useFetchUsuarios } from "@/hooks/useFetchUsuarios";
 
 const nomesNivelAcesso = {
@@ -19,24 +19,18 @@ const nomesNivelAcesso = {
 
 function ListaMembros({ empresa, usuarioLogado }) {
   const { usuarios, isLoading, error } = useFetchUsuarios(empresa.id);
-
+  
   return (
     <div className="bg-background p-4 flex flex-col space-y-6 rounded-md border-2 border-border">
       <div className="w-full flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">
-          Membros de{" "}
+          Membros de {" "}
           <span className="text-primary-hover font-heading font-semibold">
-            {empresa.nome}
+            {empresa.razao_social}
           </span>
         </h2>
 
-        <Button
-          type="button"
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          Convidar Membro
-          <PlusIcon />
-        </Button>
+        <MembroCreateForm />
       </div>
 
       <div className="space-y-3">
