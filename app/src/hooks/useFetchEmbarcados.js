@@ -8,5 +8,6 @@ export const useFetchEmbarcados = () => {
     refetch,
   } = useFetchProtectedResource("embarcados");
 
+  console.log(embarcados);
   return { embarcados: embarcados ?? [], isLoading, error, refetch };
 };

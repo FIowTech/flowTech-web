@@ -9,10 +9,24 @@ const cores = {
   vermelho: "#d2394e",
 };
 
+const tempServidoresCriticos = [
+  "00:93:37:45:D2:B5",
+  "5C:CD:5B:E5:3D:E1",
+  "DC:1B:A1:FE:BB:04",
+];
+const tempServidoresAlerta = [
+  "24:B2:B9:31:31:E5",
+  "50:FE:0C:25:F4:8D",
+  // "8C:B0:E9:BC:12:F3",
+];
+
 const centroInicial = [-23.5505, -46.6333]; // São Paulo
 
 function pegarCor(status) {
-  return status === 1 ? cores.verde : cores.vermelho;
+  if (status === "critico") return cores["vermelho"];
+  if (status === "alerta") return cores["amarelo"];
+
+  return cores["verde"];
 }
 
 // o mysql devolve lat/lon como texto, ex.: "-23.5505".
@@ -85,8 +99,17 @@ export function ServidorMapa({ servidores, selecionadoId, onSelecionar }) {
             <Marker
               key={servidor.id_embarcado}
               position={posicao}
-              icon={criarIcone(servidor.status, selecionado)}
-              eventHandlers={{ click: () => onSelecionar(servidor.id_embarcado) }}
+              icon={criarIcone(
+                tempServidoresCriticos.includes(servidor.endereco_mac)
+                  ? "critico"
+                  : tempServidoresAlerta.includes(servidor.endereco_mac)
+                    ? "alerta"
+                    : "controlado",
+                selecionado,
+              )}
+              eventHandlers={{
+                click: () => onSelecionar(servidor.id_embarcado),
+              }}
             />
           );
         })}

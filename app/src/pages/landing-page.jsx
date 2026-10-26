@@ -1,10 +1,10 @@
-import dashboardPreviewImg from "@/assets/image.png";
+import dashboardPreviewImg from "@/assets/dashboard.png";
 import heroImg from "@/assets/portico-index.png";
-import { MetricasCard } from "../components/institucional/metricas-card";
-import { MissaoCard } from "../components/institucional/missao-card";
-import { Navbar } from "../components/institucional/navbar";
-import { RecursoCard } from "../components/institucional/recurso-card";
-import { Section } from "../components/institucional/section";
+import { MetricasCard } from "@/components/institucional/metricas-card";
+import { MissaoCard } from "@/components/institucional/missao-card";
+import { Navbar } from "@/components/institucional/navbar";
+import { RecursoCard } from "@/components/institucional/recurso-card";
+import { Section } from "@/components/institucional/section";
 
 export default function LandingPage() {
   return (

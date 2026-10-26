@@ -1,12 +1,15 @@
-import {
-  ResumoCard, ResumoTotal, StatusCount } from "@/components/dashboard/resumo-card";
 import { GraficoLinha } from "@/components/dashboard/graficos";
 import { MetricaPainel } from "@/components/dashboard/metrica-painel";
+import {
+  ResumoCard,
+  ResumoTotal,
+  StatusCount,
+} from "@/components/dashboard/resumo-card";
 import { ServidorBusca } from "@/components/dashboard/servidor-busca";
 import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
 import { ServidorMapa } from "@/components/dashboard/servidor-mapa";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Relogio } from "@/components/relogio";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
@@ -24,8 +27,8 @@ const cores = {
   cinza: "#515c54",
 };
 
-const tempResumoAlertas = { amarelo: 3, vermelho: 2, total: 24 };
-const tempResumoCapturas = { recebidas: 100, esperadas: 100, porticos: 5 };
+const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
+const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
 
 export default function HomePage() {
   const usuario = useAuth((state) => state.usuario);
@@ -53,7 +56,11 @@ export default function HomePage() {
 
     return embarcados.filter((servidor) => {
       const endereco = servidor.endereco ?? {};
-      const texto = [servidor.apelido, servidor.modelo, endereco.localidade].join(" ");
+      const texto = [
+        servidor.apelido,
+        servidor.modelo,
+        endereco.localidade,
+      ].join(" ");
 
       return texto.toLowerCase().includes(termo);
     });
@@ -65,8 +72,13 @@ export default function HomePage() {
     embarcados[0];
 
   // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
-  const totalVerde = embarcados.filter((servidor) => servidor.status === 1).length;
-  const totalVermelho = embarcados.length - totalVerde;
+  // const totalVerde = embarcados.filter(
+  //   (servidor) => servidor.status === 1,
+  // ).length;
+  const totalVerde = 1;
+  const totalAmarelo = 2;
+  // const totalVermelho = embarcados.length - totalVerde;
+  const totalVermelho = 3;
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -89,7 +101,7 @@ export default function HomePage() {
           atualizadoEm={tempAtualizadoEm}
         >
           <StatusCount status="verde" quantidade={totalVerde} />
-          <StatusCount status="amarelo" quantidade={0} />
+          <StatusCount status="amarelo" quantidade={totalAmarelo} />
           <StatusCount status="vermelho" quantidade={totalVermelho} />
           <ResumoTotal total={embarcados.length} />
         </ResumoCard>
@@ -100,8 +112,14 @@ export default function HomePage() {
           tom="destructive"
           atualizadoEm={tempAtualizadoEm}
         >
-          <StatusCount status="amarelo" quantidade={tempResumoAlertas.amarelo} />
-          <StatusCount status="vermelho" quantidade={tempResumoAlertas.vermelho} />
+          <StatusCount
+            status="amarelo"
+            quantidade={tempResumoAlertas.amarelo}
+          />
+          <StatusCount
+            status="vermelho"
+            quantidade={tempResumoAlertas.vermelho}
+          />
           <ResumoTotal total={tempResumoAlertas.total} />
         </ResumoCard>
 
@@ -149,7 +167,11 @@ export default function HomePage() {
             <GraficoLinha
               labels={metricas.horarios}
               linhas={[
-                { nome: "Uso de CPU", valores: metricas.cpu.valores, cor: cores.verde },
+                {
+                  nome: "Uso de CPU",
+                  valores: metricas.cpu.valores,
+                  cor: cores.verde,
+                },
               ]}
               unidade="%"
               max={100}
@@ -161,7 +183,11 @@ export default function HomePage() {
             <GraficoLinha
               labels={metricas.horarios}
               linhas={[
-                { nome: "Uso de RAM", valores: metricas.ram.valores, cor: cores.amarelo },
+                {
+                  nome: "Uso de RAM",
+                  valores: metricas.ram.valores,
+                  cor: cores.amarelo,
+                },
               ]}
               unidade="GiB"
               area
@@ -172,8 +198,16 @@ export default function HomePage() {
             <GraficoLinha
               labels={metricas.horarios}
               linhas={[
-                { nome: "Download", valores: metricas.rede.download, cor: cores.verde },
-                { nome: "Upload", valores: metricas.rede.upload, cor: cores.cinza },
+                {
+                  nome: "Download",
+                  valores: metricas.rede.download,
+                  cor: cores.verde,
+                },
+                {
+                  nome: "Upload",
+                  valores: metricas.rede.upload,
+                  cor: cores.cinza,
+                },
               ]}
               unidade="Mbps"
             />
@@ -187,7 +221,11 @@ export default function HomePage() {
             <GraficoLinha
               labels={metricas.disco.dias}
               linhas={[
-                { nome: "Disco usado", valores: metricas.disco.usado, cor: cores.verde },
+                {
+                  nome: "Disco usado",
+                  valores: metricas.disco.usado,
+                  cor: cores.verde,
+                },
               ]}
               unidade="GB"
               max={metricas.disco.capacidade}

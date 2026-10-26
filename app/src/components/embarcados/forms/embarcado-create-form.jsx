@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/toast";
 import { useFetchComponentes } from "@/hooks/useFetchComponentes";
 import { useAuth } from "@/store/auth-store";
 import { PlusIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
@@ -29,6 +29,7 @@ export function EmbarcadoCreateForm() {
     modelo: "",
     apelido: "",
   });
+
   const [endereco, setEndereco] = useState({
     cep: "",
     logradouro: "",
@@ -42,14 +43,22 @@ export function EmbarcadoCreateForm() {
     lat: null,
     lon: null,
   });
-  const [componentesMonitorados, setComponentesMonitorados] = useState(
-    componentes.map((c) => ({
-      ...c,
-      status: 0,
-      limite_max: 0.0,
-      limite_min: 0.0,
-    })),
-  );
+
+  const [componentesMonitorados, setComponentesMonitorados] = useState([]);
+  useEffect(() => {
+    const a = () => {
+      setComponentesMonitorados(
+        componentes.map((c) => ({
+          ...c,
+          status: 0,
+          limite_max: 0.0,
+          limite_min: 0.0,
+        })),
+      );
+    };
+
+    a();
+  }, [componentes]);
 
   const isInformacoesGeraisValid = true;
 
