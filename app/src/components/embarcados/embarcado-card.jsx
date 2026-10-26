@@ -15,7 +15,9 @@ export function EmbarcadoCard({ embarcado }) {
           <div className="flex items-center gap-2">
             <h3 className="font-heading font-bold text-lg">{apelido}</h3>
             <EmbarcadoStatusBadge
-              status={status === 1 ? "controlado" : "critico"}
+              status={
+                status === 1 ? "controlado" : status === 2 ? "atencao" : "critico"
+              }
             />
           </div>
           <span className="text-text-muted text-xs">
@@ -37,5 +39,13 @@ function EmbarcadoStatusBadge({ status }) {
         ? "bg-warning-foreground border border-warning text-warning"
         : "bg-destructive-foreground border border-destructive text-destructive";
 
-  return <Badge className={cn("border", statusColors)}>{status}</Badge>;
+  return (
+    <Badge className={cn("border", statusColors)}>
+      {status === "atencao"
+        ? "atenção"
+        : status === "critico"
+          ? "crítico"
+          : status}
+    </Badge>
+  );
 }
