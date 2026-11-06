@@ -13,7 +13,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 export const useAuth = create()(
   persist(
-    (set) => ({
+    (set, get) => ({
       usuario: null,
       token: null,
       isLoggedIn: false,
@@ -23,7 +23,8 @@ export const useAuth = create()(
       cadastrar: (credentials) => cadastrar(credentials, set),
       login: (credentials) => login(credentials, set),
       logout: () => logout(set),
-    }),
+      configurarJira: (jiraData) => configurarJira(jiraData, set, get),
+      buscarEmpresa: () => buscarEmpresa(set, get)    }),
     {
       name: "auth-storage",
       storage: createJSONStorage(() => sessionStorage),
@@ -119,6 +120,71 @@ function logout(set) {
   });
 }
 
+
+async function configurarJira(jiraData, set, get) {
+  set({ isPending: true, error: null });
+
+  try {
+    const { token } = get();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_BASE_API_URL}/empresas/jira`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(jiraData),
+      },
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Não foi possível salvar as configurações do Jira.");
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Erro inesperado ao configurar o Jira.";
+
+    set({ error: message });
+
+    return { success: false, error: message };
+  } finally {
+    set({ isPending: false });
+  }
+}
+
+async function buscarEmpresa(set, get) {
+  try {
+    const { token } = get();
+    console.log("Token recuperado do state para buscar empresa:", token);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_BASE_API_URL}/empresas`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+    console.log("Resposta bruta da API /empresas:", data);
+
+    if (!response.ok) throw new Error(data.message);
+
+    return { success: true, data: data.result };
+  } catch (error) {
+    console.error("Erro ao buscar empresa:", error);
+    return { success: false, error: error.message };
+  }
+}
 // async function logout(set) {
 //   set({ isPending: true, error: null });
 

@@ -15,11 +15,15 @@ import { useAuth } from "@/store/auth-store";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
+import ConfiguracoesPage from "./pages/configuracao-page";
+import { ThemeProvider } from "./components/theme-provider";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <ThemeProvider defaultTheme="light">
+        <App />
+      </ThemeProvider>
     </BrowserRouter>
     <Toaster />
   </StrictMode>,
@@ -43,6 +47,7 @@ export function App() {
           <Route path="/embarcados/:id" element={<EmbarcadosDetailsPage />} />
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           <Route path="/equipe" element={<EquipePage />} />
+          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
         </Route>
       ) : (
         <Route path="/" element={<LandingPage />} />

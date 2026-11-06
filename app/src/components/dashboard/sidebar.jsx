@@ -10,14 +10,20 @@ import {
   HouseIcon,
   SignOutIcon,
   UsersIcon,
+  GearIcon
 } from "@phosphor-icons/react";
 import { NavLink, useNavigate } from "react-router";
+
+import { Switch } from "@/components/ui/switch"
+import { useTheme } from "@/components/theme-provider";
+
 
 const navitems = [
   { text: "Home", to: "/", icon: HouseIcon },
   { text: "Embarcados", to: "/embarcados", icon: HardDrivesIcon },
   // { text: "Alertas", to: "/alertas", icon: BellIcon },
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
+  { text: "Configurações", to: "/configuracoes", icon: GearIcon },
 ];
 
 // 0 - dev | 1 - adm | 2 - usuário comum 
@@ -27,7 +33,10 @@ const nomesNivelAcesso = {
   2: "Usuário",
 };
 
+
+
 export function Sidebar() {
+  const { theme, setTheme } = useTheme();
   return (
     <aside className="flex w-full shrink-0 flex-col gap-8 bg-background-dark px-4 py-6 sm:sticky sm:top-0 sm:h-dvh sm:w-56 sm:border-r sm:border-border">
       <div className="flex items-center gap-2 px-2">
@@ -36,8 +45,9 @@ export function Sidebar() {
         <span className="text-xl font-bold tracking-tight">FlowTech</span>
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {navitems.map((item) => (
+      <nav className="flex flex-col gap-1 h-full justify-between">
+        <div className="flex flex-col h-full">
+        {navitems.slice(0,3).map((item) => (
           <SidebarItem
             key={item.to}
             to={item.to}
@@ -45,6 +55,22 @@ export function Sidebar() {
             icon={item.icon}
           />
         ))}
+        </div>
+
+        <div className="flex flex-col gap-1">
+
+        <div className="flex items-center border rounded-md px-3 py-2 text-xs font-medium transition-all justify-between">
+        <span>Light Mode</span>
+      <Switch id="themeColor" checked={theme=="light" ? true : false } onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")} />
+      </div>
+
+          <SidebarItem
+            to={navitems[3].to}
+            text={navitems[3].text}
+            icon={navitems[3].icon}
+          />
+        </div>
+      
       </nav>
 
       <UsuarioRodape />
