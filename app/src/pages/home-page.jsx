@@ -1,5 +1,4 @@
-import { GraficoLinha } from "@/components/dashboard/graficos";
-import { MetricaPainel } from "@/components/dashboard/metrica-painel";
+import { FiltrosMapa } from "@/components/dashboard/filtros-mapa";
 import {
   ResumoCard,
   ResumoTotal,
@@ -9,12 +8,19 @@ import { ServidorBusca } from "@/components/dashboard/servidor-busca";
 import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
 import { ServidorMapa } from "@/components/dashboard/servidor-mapa";
 import { Relogio } from "@/components/relogio";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
 import { useMetricasMock } from "@/hooks/useMetricasMock";
 import { useAuth } from "@/store/auth-store";
+import {
+  listarRegioes,
+  pegarRegiao,
+  TODAS_AS_REGIOES,
+} from "@/utils/regioes";
+import { pegarStatusServidor } from "@/utils/status-servidor";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 
@@ -26,6 +32,8 @@ const cores = {
   amarelo: "#eebb4d",
   cinza: "#515c54",
 };
+
+const filtrosIniciais = { regiao: TODAS_AS_REGIOES, status: [] };
 
 const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
 const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
@@ -39,8 +47,16 @@ export default function HomePage() {
 
   const [busca, setBusca] = useState("");
   const [selecionadoId, setSelecionadoId] = useState(null);
+  const [filtros, setFiltros] = useState(filtrosIniciais);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
   const handleBuscaChange = (e) => setBusca(e.target.value);
+  const handleLimparFiltros = () => setFiltros(filtrosIniciais);
+
+  const regioes = useMemo(() => listarRegioes(embarcados), [embarcados]);
+
+  const filtrosAtivos =
+    (filtros.regiao !== TODAS_AS_REGIOES ? 1 : 0) + filtros.status.length;
 
   // média do disco: soma tudo e divide pela quantidade de dias
   let somaDisco = 0;
@@ -62,14 +78,24 @@ export default function HomePage() {
         endereco.localidade,
       ].join(" ");
 
-      return texto.toLowerCase().includes(termo);
-    });
-  }, [busca, embarcados]);
+      const passouBusca = texto.toLowerCase().includes(termo);
 
-  // O servidor clicado; se ninguém clicou ainda, usa o primeiro da lista
+      const passouRegiao =
+        filtros.regiao === TODAS_AS_REGIOES ||
+        pegarRegiao(servidor) === filtros.regiao;
+
+      const passouStatus =
+        filtros.status.length === 0 ||
+        filtros.status.includes(pegarStatusServidor(servidor));
+
+      return passouBusca && passouRegiao && passouStatus;
+    });
+  }, [busca, embarcados, filtros]);
+
   const selecionado =
-    embarcados.find((servidor) => servidor.id_embarcado === selecionadoId) ??
-    embarcados[0];
+    servidoresFiltrados.find(
+      (servidor) => servidor.id_embarcado === selecionadoId,
+    ) ?? servidoresFiltrados[0];
 
   // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
   // const totalVerde = embarcados.filter(
@@ -138,7 +164,30 @@ export default function HomePage() {
       {/* busca + mapa + detalhes */}
       <section className="flex flex-col gap-4 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <ServidorBusca value={busca} onChange={handleBuscaChange} />
+          <ServidorBusca
+            value={busca}
+            onChange={handleBuscaChange}
+            onFiltrarClick={() => setFiltrosAbertos(true)}
+            filtrosAtivos={filtrosAtivos}
+          />
+
+          {filtrosAtivos > 0 && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Mostrando {servidoresFiltrados.length} de {embarcados.length}{" "}
+                servidores
+              </span>
+
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={handleLimparFiltros}
+              >
+                Limpar filtros
+              </Button>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex h-105 items-center justify-center rounded-xl bg-background ring-1 ring-foreground/10 lg:h-full lg:min-h-105">
@@ -156,7 +205,15 @@ export default function HomePage() {
         <ServidorDetalhes servidor={selecionado} />
       </section>
 
-      {/* métricas do servidor selecionado */}
+      <FiltrosMapa
+        open={filtrosAbertos}
+        onOpenChange={setFiltrosAbertos}
+        regioes={regioes}
+        filtros={filtros}
+        onAplicar={setFiltros}
+      />
+
+      {/* métricas do servidor selecionado
       <Card className="bg-background">
         <CardHeader>
           <CardTitle>Métricas de {selecionado?.apelido ?? "—"}</CardTitle>
@@ -233,7 +290,7 @@ export default function HomePage() {
             />
           </MetricaPainel>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 }

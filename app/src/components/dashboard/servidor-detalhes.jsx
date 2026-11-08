@@ -1,12 +1,17 @@
 import { mascaraCep } from "@/utils/mascaras";
+import { useNavigate } from "react-router";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 
 // Variável mockada e temporária
 // TODO: trocar quando a API passar a devolver CPU, RAM e disco do embarcado
 const tempSistema = { cpu: "24 físicos", ram: "128 GiB", disco: "8 TB" };
 
 export function ServidorDetalhes({ servidor }) {
+  const navigate = useNavigate();
+
   if (!servidor) {
     return (
       <Card size="sm" className="w-full bg-background lg:w-72">
@@ -20,6 +25,11 @@ export function ServidorDetalhes({ servidor }) {
   const endereco = servidor.endereco ?? {};
   // CPU, RAM e disco ainda não existem na API: usa o mock até ela devolver
   const sistema = servidor.sistema ?? tempSistema;
+
+  // Leva para a página do servidor (rota /embarcados/:id)
+  const handleVerDashboardClick = () => {
+    navigate("/embarcados/" + servidor.id_embarcado);
+  };
 
   return (
     <Card size="sm" className="w-full bg-background lg:w-72">
@@ -51,6 +61,31 @@ export function ServidorDetalhes({ servidor }) {
           <Linha label="RAM:" valor={sistema.ram} />
           <Linha label="Disco:" valor={sistema.disco} />
         </Secao>
+
+        <Secao titulo="Informação de Conexão">
+          <Linha label="Última conexão:" valor={sistema.cpu} />
+          <Linha label="IP:" valor={sistema.ram} />
+          <Linha label="Disponibilidade:" valor={sistema.disco} />
+        </Secao>
+
+        <Secao titulo="Resumo de Recursos">
+          <Linha label="CPU:" valor={sistema.cpu} />
+          <Linha label="RAM:" valor={sistema.ram} />
+          <Linha label="Alertas ativos:" valor={sistema.disco} />
+        </Secao>
+
+      <Button
+        type="button"
+        size="sm"
+        className="group self-end gap-1.5 rounded-md px-4 font-semibold shadow-sm shadow-primary/30 transition-all hover:shadow-md hover:shadow-primary/40"
+        onClick={handleVerDashboardClick}
+      >
+        Ver dashboard
+        <ArrowRightIcon
+          weight="bold"
+          className="transition-transform group-hover:translate-x-0.5"
+        />
+      </Button>
       </CardContent>
     </Card>
   );
