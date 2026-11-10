@@ -23,6 +23,7 @@ import {
 import { pegarStatusServidor } from "@/utils/status-servidor";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 
 // Variáveis mockadas e temporárias
 const tempAtualizadoEm = "16:15";
@@ -39,14 +40,16 @@ const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
 const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
 
 export default function HomePage() {
+  const [searchParams] = useSearchParams();
+  const selecionadoUrl = searchParams.get("selecionado");
+
   const usuario = useAuth((state) => state.usuario);
   const { empresa } = useFetchEmpresa();
   const { embarcados, isLoading } = useFetchEmbarcados();
-  // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
   const metricas = useMetricasMock();
 
   const [busca, setBusca] = useState("");
-  const [selecionadoId, setSelecionadoId] = useState(null);
+  const [selecionadoId, setSelecionadoId] = useState(selecionadoUrl || null);
   const [filtros, setFiltros] = useState(filtrosIniciais);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
@@ -65,8 +68,6 @@ export default function HomePage() {
   }
   const mediaDisco = (somaDisco / metricas.disco.usado.length).toFixed(1);
 
-  // useMemo guarda o resultado e só refaz o filtro quando a busca ou os dados mudam.
-  // Sem isso, o mapa se reenquadraria a cada clique em um marcador.
   const servidoresFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
 
@@ -94,16 +95,11 @@ export default function HomePage() {
 
   const selecionado =
     servidoresFiltrados.find(
-      (servidor) => servidor.id_embarcado === selecionadoId,
+      (servidor) => String(servidor.id_embarcado) === String(selecionadoId),
     ) ?? servidoresFiltrados[0];
 
-  // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
-  // const totalVerde = embarcados.filter(
-  //   (servidor) => servidor.status === 1,
-  // ).length;
   const totalVerde = 1;
   const totalAmarelo = 2;
-  // const totalVermelho = embarcados.length - totalVerde;
   const totalVermelho = 3;
 
   return (
@@ -196,7 +192,7 @@ export default function HomePage() {
           ) : (
             <ServidorMapa
               servidores={servidoresFiltrados}
-              selecionadoId={selecionado?.id_embarcado}
+              selecionadoId={selecionado.id_embarcado}
               onSelecionar={setSelecionadoId}
             />
           )}
@@ -212,85 +208,6 @@ export default function HomePage() {
         filtros={filtros}
         onAplicar={setFiltros}
       />
-
-      {/* métricas do servidor selecionado
-      <Card className="bg-background">
-        <CardHeader>
-          <CardTitle>Métricas de {selecionado?.apelido ?? "—"}</CardTitle>
-        </CardHeader>
-
-        <CardContent className="grid gap-4 lg:grid-cols-2">
-          <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Uso de CPU",
-                  valores: metricas.cpu.valores,
-                  cor: cores.verde,
-                },
-              ]}
-              unidade="%"
-              max={100}
-              area
-            />
-          </MetricaPainel>
-
-          <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Uso de RAM",
-                  valores: metricas.ram.valores,
-                  cor: cores.amarelo,
-                },
-              ]}
-              unidade="GiB"
-              area
-            />
-          </MetricaPainel>
-
-          <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Download",
-                  valores: metricas.rede.download,
-                  cor: cores.verde,
-                },
-                {
-                  nome: "Upload",
-                  valores: metricas.rede.upload,
-                  cor: cores.cinza,
-                },
-              ]}
-              unidade="Mbps"
-            />
-          </MetricaPainel>
-
-          <MetricaPainel
-            titulo="Métricas Disco"
-            descricao="Média de espaço usado neste mês"
-            valor={mediaDisco + " GB"}
-          >
-            <GraficoLinha
-              labels={metricas.disco.dias}
-              linhas={[
-                {
-                  nome: "Disco usado",
-                  valores: metricas.disco.usado,
-                  cor: cores.verde,
-                },
-              ]}
-              unidade="GB"
-              max={metricas.disco.capacidade}
-              area
-            />
-          </MetricaPainel>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

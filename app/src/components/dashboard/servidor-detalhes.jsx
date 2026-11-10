@@ -28,7 +28,7 @@ export function ServidorDetalhes({ servidor }) {
 
   // Leva para a página do servidor (rota /embarcados/:id)
   const handleVerDashboardClick = () => {
-    navigate("/embarcados/" + servidor.id_embarcado);
+    navigate("/embarcados?id=" + servidor.id_embarcado);
   };
 
   return (
