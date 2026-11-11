@@ -1,4 +1,5 @@
 import logoFlowtech from "@/assets/flow-icon-light.png";
+import logoFlowTechDark from "@/assets/flow-icon-dark.png";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
@@ -40,7 +41,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-full shrink-0 flex-col gap-8 bg-background-dark px-4 py-6 sm:sticky sm:top-0 sm:h-dvh sm:w-56 sm:border-r sm:border-border">
       <div className="flex items-center gap-2 px-2">
-        <img src={logoFlowtech} alt="FlowTech Logo" className="w-7" />
+        <img src={theme=="light" ? logoFlowtech : logoFlowTechDark } alt="FlowTech Logo" className="w-7" />
 
         <span className="text-xl font-bold tracking-tight">FlowTech</span>
       </div>
