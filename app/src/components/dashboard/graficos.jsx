@@ -2,6 +2,7 @@ import {
   CategoryScale,
   Chart as ChartJS,
   Filler,
+  ArcElement,
   Legend,
   LinearScale,
   LineElement,
@@ -9,8 +10,10 @@ import {
   Tooltip,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { Doughnut } from "react-chartjs-2";
 
 ChartJS.register(
+  ArcElement,
   CategoryScale,
   Filler,
   Legend,
@@ -53,4 +56,28 @@ export function GraficoLinha({ labels, linhas, unidade, max, area }) {
   };
 
   return <Line data={{ labels, datasets }} options={opcoes} />;
+}
+
+export function GraficoDonut({ labels, linhas }) {
+
+  const datasets = linhas.map((linha) => ({
+    label: linha.nome,
+    data: linha.valores,
+    backgroundColor: linha.cores,
+    borderWidth: 0,
+  }));
+
+  const opcoes = {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: "70%",
+    plugins: {
+      legend: {
+        display: linhas.length > 0,
+        position: "right",
+      },
+    },
+  };
+
+  return <Doughnut data={{ labels, datasets }} options={opcoes}/>;
 }

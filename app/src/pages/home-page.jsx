@@ -1,16 +1,10 @@
-import { GraficoLinha } from "@/components/dashboard/graficos";
-import { MetricaPainel } from "@/components/dashboard/metrica-painel";
+import { GraficoDonut } from "@/components/dashboard/graficos";
 import {
   ResumoCard,
   ResumoTotal,
   StatusCount,
 } from "@/components/dashboard/resumo-card";
-import { ServidorBusca } from "@/components/dashboard/servidor-busca";
-import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
-import { ServidorMapa } from "@/components/dashboard/servidor-mapa";
 import { Relogio } from "@/components/relogio";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
 import { useMetricasMock } from "@/hooks/useMetricasMock";
@@ -27,59 +21,18 @@ const cores = {
   cinza: "#515c54",
 };
 
-const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
-const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
-
 export default function HomePage() {
   const usuario = useAuth((state) => state.usuario);
   const { empresa } = useFetchEmpresa();
   const { embarcados, isLoading } = useFetchEmbarcados();
+  const embarcadosEmAlerta = embarcados.filter((embarcado) => embarcado.parametros.some((parametro) => parametro.status === 0)).length;
+  // Ordenação e Filtro: Crítico (0/vermelho) -> Alerta (amarelo) -> OK (1/verde)
+
   // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
   const metricas = useMetricasMock();
 
-  const [busca, setBusca] = useState("");
-  const [selecionadoId, setSelecionadoId] = useState(null);
-
-  const handleBuscaChange = (e) => setBusca(e.target.value);
-
-  // média do disco: soma tudo e divide pela quantidade de dias
-  let somaDisco = 0;
-  for (const valor of metricas.disco.usado) {
-    somaDisco += valor;
-  }
-  const mediaDisco = (somaDisco / metricas.disco.usado.length).toFixed(1);
-
   // useMemo guarda o resultado e só refaz o filtro quando a busca ou os dados mudam.
-  // Sem isso, o mapa se reenquadraria a cada clique em um marcador.
-  const servidoresFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    return embarcados.filter((servidor) => {
-      const endereco = servidor.endereco ?? {};
-      const texto = [
-        servidor.apelido,
-        servidor.modelo,
-        endereco.localidade,
-      ].join(" ");
-
-      return texto.toLowerCase().includes(termo);
-    });
-  }, [busca, embarcados]);
-
-  // O servidor clicado; se ninguém clicou ainda, usa o primeiro da lista
-  const selecionado =
-    embarcados.find((servidor) => servidor.id_embarcado === selecionadoId) ??
-    embarcados[0];
-
-  // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
-  // const totalVerde = embarcados.filter(
-  //   (servidor) => servidor.status === 1,
-  // ).length;
-  const totalVerde = 1;
-  const totalAmarelo = 2;
-  // const totalVermelho = embarcados.length - totalVerde;
-  const totalVermelho = 3;
-
+  // Sem isso, o mapa se reenquadraria a cada clique em um marcador
   return (
     <div className="w-full flex flex-col space-y-6">
       {/* topbar */}
@@ -93,147 +46,44 @@ export default function HomePage() {
       </div>
 
       {/* resumo */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
         <ResumoCard
-          titulo="Situação Embarcados"
+          titulo="Pórticos Monitorados"
           icon={HardDrivesIcon}
-          tom="warning"
+          tom="neutro"
           atualizadoEm={tempAtualizadoEm}
         >
-          <StatusCount status="verde" quantidade={totalVerde} />
-          <StatusCount status="amarelo" quantidade={totalAmarelo} />
-          <StatusCount status="vermelho" quantidade={totalVermelho} />
-          <ResumoTotal total={embarcados.length} />
+          <span className="text-4xl font-bold ml-10">
+            {embarcados.length} 
+          </span>
+          <span className="text-3xl font-normal">pórticos</span>
         </ResumoCard>
 
         <ResumoCard
-          titulo="Alertas e Notificações"
+          titulo="Pórticos em Alerta"
           icon={BellIcon}
           tom="destructive"
           atualizadoEm={tempAtualizadoEm}
         >
-          <StatusCount
-            status="amarelo"
-            quantidade={tempResumoAlertas.amarelo}
-          />
-          <StatusCount
-            status="vermelho"
-            quantidade={tempResumoAlertas.vermelho}
-          />
-          <ResumoTotal total={tempResumoAlertas.total} />
+          <span className="text-4xl ml-10">{embarcadosEmAlerta}</span>
+          <span className="text-3xl font-normal">pórticos</span>
         </ResumoCard>
-
-        <ResumoCard
-          titulo="Capturas Recebidas/Esperadas"
-          icon={CameraIcon}
-          atualizadoEm={tempAtualizadoEm}
-        >
-          {tempResumoCapturas.recebidas} / {tempResumoCapturas.esperadas}
-          <span className="text-xs font-normal text-muted-foreground">
-            de {tempResumoCapturas.porticos} pórticos
+      </section>
+      <div className="h-100 bg-background border border-border p-4 rounded-2xl w-full">
+          <span className="text-4xl">
+            Quantidade de Alertas por Componente
           </span>
-        </ResumoCard>
-      </section>
-
-      {/* busca + mapa + detalhes */}
-      <section className="flex flex-col gap-4 lg:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <ServidorBusca value={busca} onChange={handleBuscaChange} />
-
-          {isLoading ? (
-            <div className="flex h-105 items-center justify-center rounded-xl bg-background ring-1 ring-foreground/10 lg:h-full lg:min-h-105">
-              <Spinner />
-            </div>
-          ) : (
-            <ServidorMapa
-              servidores={servidoresFiltrados}
-              selecionadoId={selecionado?.id_embarcado}
-              onSelecionar={setSelecionadoId}
-            />
-          )}
-        </div>
-
-        <ServidorDetalhes servidor={selecionado} />
-      </section>
-
-      {/* métricas do servidor selecionado */}
-      <Card className="bg-background">
-        <CardHeader>
-          <CardTitle>Métricas de {selecionado?.apelido ?? "—"}</CardTitle>
-        </CardHeader>
-
-        <CardContent className="grid gap-4 lg:grid-cols-2">
-          <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Uso de CPU",
-                  valores: metricas.cpu.valores,
-                  cor: cores.verde,
-                },
-              ]}
-              unidade="%"
-              max={100}
-              area
-            />
-          </MetricaPainel>
-
-          <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Uso de RAM",
-                  valores: metricas.ram.valores,
-                  cor: cores.amarelo,
-                },
-              ]}
-              unidade="GiB"
-              area
-            />
-          </MetricaPainel>
-
-          <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
-            <GraficoLinha
-              labels={metricas.horarios}
-              linhas={[
-                {
-                  nome: "Download",
-                  valores: metricas.rede.download,
-                  cor: cores.verde,
-                },
-                {
-                  nome: "Upload",
-                  valores: metricas.rede.upload,
-                  cor: cores.cinza,
-                },
-              ]}
-              unidade="Mbps"
-            />
-          </MetricaPainel>
-
-          <MetricaPainel
-            titulo="Métricas Disco"
-            descricao="Média de espaço usado neste mês"
-            valor={mediaDisco + " GB"}
-          >
-            <GraficoLinha
-              labels={metricas.disco.dias}
-              linhas={[
-                {
-                  nome: "Disco usado",
-                  valores: metricas.disco.usado,
-                  cor: cores.verde,
-                },
-              ]}
-              unidade="GB"
-              max={metricas.disco.capacidade}
-              area
-            />
-          </MetricaPainel>
-        </CardContent>
-      </Card>
+          <GraficoDonut
+            labels={["CPU", "RAM", "Disco","Rede"]}
+            linhas={[
+              {
+                nome: "Alertas",
+                valores: [5, 4, 3,1],
+                cores: ["#EF4444", "#F59E0B", "#3B82F6","#5D45EA"],
+              },
+            ]}
+          />
+      </div>
     </div>
   );
 }
