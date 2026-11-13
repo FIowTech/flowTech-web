@@ -1,4 +1,5 @@
 import { GraficoDonut } from "@/components/dashboard/graficos";
+import { GraficoBarras } from "@/components/dashboard/graficos";
 import {
   ResumoCard,
   ResumoTotal,
@@ -69,20 +70,26 @@ export default function HomePage() {
           <span className="text-3xl font-normal">pórticos</span>
         </ResumoCard>
       </section>
-      <div className="h-100 bg-background border border-border p-4 rounded-2xl w-full">
-          <span className="text-4xl">
-            Quantidade de Alertas por Componente
-          </span>
-          <GraficoDonut
-            labels={["CPU", "RAM", "Disco","Rede"]}
-            linhas={[
-              {
-                nome: "Alertas",
-                valores: [5, 4, 3,1],
-                cores: ["#EF4444", "#F59E0B", "#3B82F6","#5D45EA"],
-              },
-            ]}
+      <div className="grid grid-cols-1 gap-20 md:grid-cols-2">
+        <div className="h-90 bg-background border border-border p-4 rounded-2xl w-130">
+            <GraficoDonut
+              labels={["CPU", "RAM", "Disco","Rede"]}
+              linhas={[
+                {
+                  nome: "Alertas",
+                  valores: [5, 4, 3,1],
+                  cores: ["#EF4444", "#F59E0B", "#3B82F6","#5D45EA"],
+                },
+              ]}
+            />
+        </div>
+        <div className="h-90 bg-background border border-border p-4 rounded-2xl w-130">
+          <GraficoBarras
+            labels={["Márcio", "Kevin", "Agatha"]}
+            valores={[35, 52, 28]}
+            cores={["#22c55e", "#f59e0b", "#3b82f6"]}
           />
+        </div>
       </div>
     </div>
   );

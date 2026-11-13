@@ -6,11 +6,14 @@ import {
   Legend,
   LinearScale,
   LineElement,
+  BarElement,
   PointElement,
+  Title,
   Tooltip,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import { Doughnut } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   ArcElement,
@@ -18,8 +21,10 @@ ChartJS.register(
   Filler,
   Legend,
   LinearScale,
+  BarElement,
   LineElement,
   PointElement,
+  Title,
   Tooltip,
 );
 
@@ -61,10 +66,11 @@ export function GraficoLinha({ labels, linhas, unidade, max, area }) {
 export function GraficoDonut({ labels, linhas }) {
 
   const datasets = linhas.map((linha) => ({
-    label: linha.nome,
+    label: labels,
     data: linha.valores,
     backgroundColor: linha.cores,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderRadius: 5,
   }));
 
   const opcoes = {
@@ -73,11 +79,61 @@ export function GraficoDonut({ labels, linhas }) {
     cutout: "70%",
     plugins: {
       legend: {
-        display: linhas.length > 0,
+        display: true,
         position: "right",
+                labels: {
+          color: "#9ca3af",
+          padding: 15,
+          usePointStyle: true,
+          pointStyle: "circle",
+        },
       },
+    },
+     title: {
+      display: true,
+      text: "Quantidade de Alertas por Componente",
+      color: "#000",
+      position: "top",
+      font: {
+        size: 18,
+        weight: "bold",
+      },
+      padding: 20,
     },
   };
 
   return <Doughnut data={{ labels, datasets }} options={opcoes}/>;
+}
+
+export function GraficoBarras({ labels, valores, cores }) {
+  const datasets = {
+    labels,
+    datasets: [
+      {
+        label: "Quantidade de chamados",
+        data: valores,
+        backgroundColor: cores,
+        borderRadius: 5,
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const opcoes = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+        },
+      },
+    },
+  };
+
+  return <Bar data={datasets} options={opcoes} />;
 }

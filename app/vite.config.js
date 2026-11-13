@@ -3,9 +3,14 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
+import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    outDir : path.resolve(__dirname, '../server/public'),
+    emptyOutDir: true,
+  },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),
@@ -15,5 +20,5 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
-  },
+  }
 });
