@@ -19,24 +19,27 @@ import { useTheme } from "@/components/theme-provider";
 
 
 const navitems = [
-  { text: "Home", to: "/", icon: HouseIcon },
+  { text: "Home", to: "/", icon: HouseIcon},
   { text: "Embarcados", to: "/embarcados", icon: HardDrivesIcon },
-  // { text: "Alertas", to: "/alertas", icon: BellIcon },
+  { text: "Alertas", to: "/alertas", icon: BellIcon },
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
   { text: "Configurações", to: "/configuracoes", icon: GearIcon },
 ];
 
-// 0 - dev | 1 - adm | 2 - usuário comum 
+// 0 - dev | 1 - Gerente | 2 - Teccnico | 3 - 
 const nomesNivelAcesso = {
   0: "Desenvolvedor",
-  1: "Administrador",
-  2: "Usuário",
+  1: "Gerente",
+  2: "Tecnico",
+  3: "Analista"
 };
 
 
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme();
+  const usuarios = useAuth((state) => state.usuario);
+  console.log(usuarios) 
   return (
     <aside className="flex w-full shrink-0 flex-col gap-8 bg-background-dark px-4 py-6 sm:sticky sm:top-0 sm:h-dvh sm:w-56 sm:border-r sm:border-border">
       <div className="flex items-center gap-2 px-2">
@@ -47,12 +50,13 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-1 h-full justify-between">
         <div className="flex flex-col h-full">
-        {navitems.slice(0,3).map((item) => (
+        {navitems.slice(0,4).map((item) => (
           <SidebarItem
             key={item.to}
             to={item.to}
             text={item.text}
             icon={item.icon}
+            
           />
         ))}
         </div>
@@ -65,9 +69,9 @@ export function Sidebar() {
       </div>
 
           <SidebarItem
-            to={navitems[3].to}
-            text={navitems[3].text}
-            icon={navitems[3].icon}
+            to={navitems[4].to}
+            text={navitems[4].text}
+            icon={navitems[4].icon}
           />
         </div>
       
