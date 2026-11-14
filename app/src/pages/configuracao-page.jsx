@@ -1,4 +1,5 @@
 import logoFlowtech from "@/assets/flow-icon-light.png";
+import logoFlowtechDark from "@/assets/flow-icon-dark.png"
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +23,8 @@ import { useAuth } from "@/store/auth-store";
 import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { resolveSelectedIndex } from "@base-ui/react/internals/itemEquality";
+import { useTheme } from "@/components/theme-provider";
 
 export default function ConfigurarJiraPage() {
   const navigate = useNavigate();
@@ -113,10 +116,11 @@ useEffect(() => {
     );
   }
 
+  const { theme } = useTheme();
   return (
     <div className="min-w-lg flex flex-col items-center  space-y-12">
       <div className="flex items-center space-x-2">
-        <img src={logoFlowtech} alt="FlowTech Logo" className="w-12" />
+        <img src={theme=="light" ? logoFlowtech : logoFlowtechDark} alt="FlowTech Logo" className="w-12" />
         <h2 className="text-4xl font-heading font-bold -ml-4 pt-2">lowTech</h2>
       </div>
 
@@ -164,7 +168,7 @@ useEffect(() => {
 
               <Field>
                 <FieldLabel htmlFor="jira-api-key">API Key (Token)</FieldLabel>
-                <InputGroup>
+                <InputGroup className="overflow-hidden rounded-md">
                   <InputGroupInput
                     id="jira-api-key"
                     type={apiKeyVisible ? "text" : "password"}

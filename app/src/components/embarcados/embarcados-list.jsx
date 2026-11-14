@@ -8,7 +8,10 @@ export function EmbarcadosList({ embarcados, refetchHandler }) {
       {embarcados.length > 0 ? (
         embarcados.map((emb) => (
           <li key={emb.id_embarcado}>
-            <EmbarcadoCard embarcado={emb} />
+            <EmbarcadoCard
+              embarcado={emb}
+              refetchHandler={refetchHandler}
+            />
           </li>
         ))
       ) : (

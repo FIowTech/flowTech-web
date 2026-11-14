@@ -25,7 +25,7 @@ export default function EquipePage() {
         <div>
           <h2 className="block text-xs text-muted-foreground">Logado como</h2>
           <h1 className="font-heading text-xl font-semibold">
-            <span className="text-primary-hover">
+            <span>
               {usuario?.nome} • {cargo}
             </span>
           </h1>

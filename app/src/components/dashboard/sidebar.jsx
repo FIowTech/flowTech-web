@@ -139,7 +139,7 @@ function SidebarItem({ to, text, icon: Icon }) {
       <Button
         type="button"
         variant="destructive"
-        className="w-full justify-between bg-(--danger-foreground) px-3 text-xs hover:bg-(--danger-foreground)/70"
+        className="w-full justify-between bg-(--destructive-foreground) px-3 text-xs hover:bg-(--destructive-foreground)/70"
         onClick={handleSairClick}
         disabled={isPending}
       >

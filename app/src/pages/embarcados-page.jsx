@@ -46,6 +46,7 @@ export default function EmbarcadosPage() {
             <Button
               variant="outline"
               className="flex items-center gap-2 cursor-pointer"
+              onClick={refetch}
             >
               <ArrowsCounterClockwiseIcon />
             </Button>

@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { useAuth } from "@/store/auth-store";
@@ -16,8 +17,38 @@ import { useState } from "react";
 import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
+import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
+import { useDeleteEmbarcado } from "@/hooks/useDeleteEmbarcados";
 
-export function EmbarcadoEditForm({ embarcado }) {
+export function EmbarcadoEditForm({ embarcado, refetchHandler }) {
+
+  const {
+    deletarEmbarcado,
+    isDeleting,
+  } = useDeleteEmbarcado();
+
+  const [dialogAberto, setDialogAberto] = useState(false);
+
+  async function handleDelete() {
+    try {
+      await deletarEmbarcado(embarcado.id_embarcado);
+    
+      toast.add({
+        description: "Servidor deletado com sucesso!",
+        type: "success",
+      });
+    
+      setDialogAberto(false);
+    
+      await refetchHandler();
+    
+    } catch (error) {
+      toast.add({
+        description: error.message || "Erro ao deletar servidor.",
+        type: "error",
+      });
+    }
+  }
   const authToken = useAuth((state) => state.token);
 
   const [isSendingForm, setIsSendingForm] = useState(false);
@@ -139,7 +170,54 @@ export function EmbarcadoEditForm({ embarcado }) {
           />
         </form>
 
+        <Dialog
+          open={dialogAberto}
+          onOpenChange={setDialogAberto}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Confirmar exclusão?
+              </DialogTitle>
+
+              <DialogDescription>
+                Tem certeza que deseja deletar este servidor?
+                Essa ação não poderá ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDialogAberto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Spinner /> Deletando...
+                  </>
+                ) : (
+                  "Sim, deletar"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <DialogFooter>
+          <Button
+            variant="destructive"
+            onClick={() => setDialogAberto(true)}
+          >
+            Deletar
+          </Button>
+          
           <Button
             type="submit"
             form="criar-embarcado-form"

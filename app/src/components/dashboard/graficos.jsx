@@ -14,6 +14,9 @@ import {
 import { Line } from "react-chartjs-2";
 import { Doughnut } from "react-chartjs-2";
 import { Bar } from "react-chartjs-2";
+import { useTheme } from "@/components/theme-provider";
+import { useEffect, useState } from "react";
+
 
 ChartJS.register(
   ArcElement,
@@ -64,9 +67,8 @@ export function GraficoLinha({ labels, linhas, unidade, max, area }) {
 }
 
 export function GraficoDonut({ labels, linhas }) {
-
   const datasets = linhas.map((linha) => ({
-    label: labels,
+    label: "Alertas",
     data: linha.valores,
     backgroundColor: linha.cores,
     borderWidth: 1,
@@ -75,7 +77,7 @@ export function GraficoDonut({ labels, linhas }) {
 
   const opcoes = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
     cutout: "70%",
     plugins: {
       legend: {
@@ -88,17 +90,6 @@ export function GraficoDonut({ labels, linhas }) {
           pointStyle: "circle",
         },
       },
-    },
-     title: {
-      display: true,
-      text: "Quantidade de Alertas por Componente",
-      color: "#000",
-      position: "top",
-      font: {
-        size: 18,
-        weight: "bold",
-      },
-      padding: 20,
     },
   };
 

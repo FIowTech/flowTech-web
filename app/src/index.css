@@ -62,6 +62,7 @@
 }
 
 :root {
+  --input-autofill-background: var(--background);
   --background: hsl(140 13.04% 90.98%);
   --foreground: hsl(135 15.38% 5.1%);
 
@@ -124,6 +125,7 @@
 }
 
 .dark {
+  --input-autofill-background: var(--background-dark);
   --background: hsl(140 13.04% 9.02%);
   --foreground: hsl(132 20% 95.1%);
 
@@ -183,6 +185,16 @@
 
   --background-dark: hsl(135 10.53% 14.9%);
   --background-light: hsl(135 10.53% 14.9%);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--input-autofill-background) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  color: var(--foreground) !important;
+  caret-color: var(--foreground) !important;
 }
 
 @layer base {

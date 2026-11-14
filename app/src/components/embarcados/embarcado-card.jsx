@@ -4,7 +4,7 @@ import { cn } from "cn";
 import { Badge } from "../ui/badge";
 import { EmbarcadoEditForm } from "./forms/embarcado-edit-form";
 
-export function EmbarcadoCard({ embarcado }) {
+export function EmbarcadoCard({embarcado, refetchHandler,}) {
   const { apelido, modelo, endereco_mac, status } = embarcado;
   const nivelAcesso = useAuth((state) => state.usuario?.nivel_acesso);
 
@@ -25,7 +25,7 @@ export function EmbarcadoCard({ embarcado }) {
           </span>
         </div>
 
-        {nivelAcesso <= 1 && <EmbarcadoEditForm embarcado={embarcado} />}
+        {nivelAcesso <= 1 && <EmbarcadoEditForm embarcado={embarcado} refetchHandler={refetchHandler}/>}
       </CardContent>
     </Card>
   );
