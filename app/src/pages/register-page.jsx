@@ -1,4 +1,5 @@
 import logoFlowtech from "@/assets/flow-icon-light.png";
+import logoFlowtechDark from "@/assets/flow-icon-dark.png";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,12 +28,14 @@ import { useAuth } from "@/store/auth-store";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useTheme } from "@/components/theme-provider";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const cadastrar = useAuth((state) => state.cadastrar);
   const isPending = useAuth((state) => state.isPending);
   const isLoggedIn = useAuth((state) => state.isLoggedIn);
+  const theme = useTheme();
 
   const [credentials, setCredentials] = useState({
     codigoAcesso: "",
@@ -100,7 +103,7 @@ export default function RegisterPage() {
   return (
     <div className="min-w-lg flex flex-col items-center space-y-12">
       <div className="flex items-center space-x-2">
-        <img src={logoFlowtech} alt="FlowTech Logo" className="w-12" />
+        <img src={theme=="light" ? logoFlowtech : logoFlowtechDark} alt="FlowTech Logo" className="w-12" />
         <h2 className="text-4xl font-heading font-bold -ml-4 pt-2">lowTech</h2>
       </div>
 
@@ -173,7 +176,7 @@ export default function RegisterPage() {
               {/* Campo - Senha */}
               <Field>
                 <FieldLabel htmlFor="cadastro-senha">Senha</FieldLabel>
-                <InputGroup>
+                <InputGroup className="overflow-hidden rounded-md">
                   <InputGroupInput
                     id="cadastro-senha"
                     type={senhaVisible ? "text" : "password"}

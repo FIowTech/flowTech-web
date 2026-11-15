@@ -33,14 +33,14 @@ export default function EquipePage() {
 
         <div className="flex items-center gap-2">
           <Relogio />
-          <Button
+          {/* <Button
             type="button"
             variant="outline"
             aria-label="Sair"
             className="cursor-pointer text-destructive hover:text-destructive"
           >
             <SignOutIcon />
-          </Button>
+          </Button> */}
         </div>
       </Card>
 
