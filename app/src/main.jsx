@@ -16,6 +16,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import ConfiguracoesPage from "./pages/configuracao-page";
+import FinanceiroPage from "./pages/dashboard-financeiro.jsx"
 import { ThemeProvider } from "./components/theme-provider";
 
 createRoot(document.getElementById("root")).render(
@@ -48,6 +49,7 @@ export function App() {
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           <Route path="/equipe" element={<EquipePage />} />
           <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+          <Route path="/financeiro" element={<FinanceiroPage />} />
         </Route>
       ) : (
         <Route path="/" element={<LandingPage />} />
