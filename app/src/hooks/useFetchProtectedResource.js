@@ -9,7 +9,7 @@ export const useFetchProtectedResource = (endpoint) => {
   const [error, setError] = useState(null);
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
-  const refetch = () => setRefetchTrigger(0);
+  const refetch = () => setRefetchTrigger((n) => n + 1);
 
   useEffect(() => {
     const fetchResource = async () => {

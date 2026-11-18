@@ -7,12 +7,14 @@ const empresasRouter = require("./empresas");
 const embarcadosRouter = require("./embarcados");
 const codigoDeAcessoRouter = require("./codigos-acesso");
 const componentesRouter = require("./componentes");
+const goldRouter = require("./gold");
 
 router.use("/usuarios", usuariosRouter);
 router.use("/empresas", authMiddleware, empresasRouter);
 router.use("/embarcados", authMiddleware, embarcadosRouter);
 router.use("/codigos", authMiddleware, codigoDeAcessoRouter);
 router.use("/componentes", authMiddleware, componentesRouter);
+router.use("/gold", authMiddleware, goldRouter);
 
 module.exports = router;
 

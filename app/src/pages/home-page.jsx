@@ -4,12 +4,12 @@ import {
   ResumoTotal,
   StatusCount,
 } from "@/components/dashboard/resumo-card";
+import { SeletorVisao } from "@/components/dashboard/seletor-visao";
 import { ServidorBusca } from "@/components/dashboard/servidor-busca";
 import { ServidorDetalhes } from "@/components/dashboard/servidor-detalhes";
 import { ServidorMapa } from "@/components/dashboard/servidor-mapa";
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
@@ -23,7 +23,6 @@ import {
 import { pegarStatusServidor } from "@/utils/status-servidor";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
 
 // Variáveis mockadas e temporárias
 const tempAtualizadoEm = "16:15";
@@ -40,18 +39,17 @@ const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
 const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
 
 export default function HomePage() {
-  const [searchParams] = useSearchParams();
-  const selecionadoUrl = searchParams.get("selecionado");
-
   const usuario = useAuth((state) => state.usuario);
   const { empresa } = useFetchEmpresa();
   const { embarcados, isLoading } = useFetchEmbarcados();
+  // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
   const metricas = useMetricasMock();
 
   const [busca, setBusca] = useState("");
-  const [selecionadoId, setSelecionadoId] = useState(selecionadoUrl || null);
+  const [selecionadoId, setSelecionadoId] = useState(null);
   const [filtros, setFiltros] = useState(filtrosIniciais);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [visao, setVisao] = useState("mapa"); // "mapa" ou "calor"
 
   const handleBuscaChange = (e) => setBusca(e.target.value);
   const handleLimparFiltros = () => setFiltros(filtrosIniciais);
@@ -95,11 +93,16 @@ export default function HomePage() {
 
   const selecionado =
     servidoresFiltrados.find(
-      (servidor) => String(servidor.id_embarcado) === String(selecionadoId),
+      (servidor) => servidor.id_embarcado === selecionadoId,
     ) ?? servidoresFiltrados[0];
 
+  // Contagem real. No banco o status é 1 (controlado) ou 0 (crítico).
+  // const totalVerde = embarcados.filter(
+  //   (servidor) => servidor.status === 1,
+  // ).length;
   const totalVerde = 1;
   const totalAmarelo = 2;
+  // const totalVermelho = embarcados.length - totalVerde;
   const totalVermelho = 3;
 
   return (
@@ -129,7 +132,7 @@ export default function HomePage() {
         </ResumoCard>
 
         <ResumoCard
-          titulo="Alertas e Notificações"
+          titulo="Região mais crítica"
           icon={BellIcon}
           tom="destructive"
           atualizadoEm={tempAtualizadoEm}
@@ -145,7 +148,7 @@ export default function HomePage() {
           <ResumoTotal total={tempResumoAlertas.total} />
         </ResumoCard>
 
-        <ResumoCard
+        {/* <ResumoCard
           titulo="Capturas Recebidas/Esperadas"
           icon={CameraIcon}
           atualizadoEm={tempAtualizadoEm}
@@ -154,7 +157,7 @@ export default function HomePage() {
           <span className="text-xs font-normal text-muted-foreground">
             de {tempResumoCapturas.porticos} pórticos
           </span>
-        </ResumoCard>
+        </ResumoCard> */}
       </section>
 
       {/* busca + mapa + detalhes */}
@@ -185,6 +188,8 @@ export default function HomePage() {
             </div>
           )}
 
+          <SeletorVisao value={visao} onChange={setVisao} />
+
           {isLoading ? (
             <div className="flex h-105 items-center justify-center rounded-xl bg-background ring-1 ring-foreground/10 lg:h-full lg:min-h-105">
               <Spinner />
@@ -192,8 +197,9 @@ export default function HomePage() {
           ) : (
             <ServidorMapa
               servidores={servidoresFiltrados}
-              selecionadoId={selecionado.id_embarcado}
+              selecionadoId={selecionado?.id_embarcado}
               onSelecionar={setSelecionadoId}
+              visao={visao}
             />
           )}
         </div>
@@ -208,6 +214,85 @@ export default function HomePage() {
         filtros={filtros}
         onAplicar={setFiltros}
       />
+{/* 
+      <Card className="bg-background">
+        <CardHeader>
+          <CardTitle>Métricas de {selecionado?.apelido ?? "—"}</CardTitle>
+        </CardHeader>
+
+        <CardContent className="grid gap-4 lg:grid-cols-2">
+          <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
+            <GraficoLinha
+              labels={metricas.horarios}
+              linhas={[
+                {
+                  nome: "Uso de CPU",
+                  valores: metricas.cpu.valores,
+                  cor: cores.verde,
+                },
+              ]}
+              unidade="%"
+              max={100}
+              area
+            />
+          </MetricaPainel>
+
+          <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
+            <GraficoLinha
+              labels={metricas.horarios}
+              linhas={[
+                {
+                  nome: "Uso de RAM",
+                  valores: metricas.ram.valores,
+                  cor: cores.amarelo,
+                },
+              ]}
+              unidade="GiB"
+              area
+            />
+          </MetricaPainel>
+
+          <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
+            <GraficoLinha
+              labels={metricas.horarios}
+              linhas={[
+                {
+                  nome: "Download",
+                  valores: metricas.rede.download,
+                  cor: cores.verde,
+                },
+                {
+                  nome: "Upload",
+                  valores: metricas.rede.upload,
+                  cor: cores.cinza,
+                },
+              ]}
+              unidade="Mbps"
+            />
+          </MetricaPainel>
+
+          <MetricaPainel
+            titulo="Métricas Disco"
+            descricao="Média de espaço usado neste mês"
+            valor={mediaDisco + " GB"}
+          >
+            <GraficoLinha
+              labels={metricas.disco.dias}
+              linhas={[
+                {
+                  nome: "Disco usado",
+                  valores: metricas.disco.usado,
+                  cor: cores.verde,
+                },
+              ]}
+              unidade="GB"
+              max={metricas.disco.capacidade}
+              area
+            />
+          </MetricaPainel>
+        </CardContent>
+      </Card> */}
+
     </div>
   );
 }

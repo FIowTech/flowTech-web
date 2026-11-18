@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { ArrowRightIcon } from "@phosphor-icons/react";
+import { useFetchProtectedResource } from "@/hooks/useFetchProtectedResource";
 
 // Variável mockada e temporária
 // TODO: trocar quando a API passar a devolver CPU, RAM e disco do embarcado
