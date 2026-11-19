@@ -1,0 +1,78 @@
+import { useState } from "react";
+import SummaryCards from "@/components/dashboard/Agatha/cartoes-resumo";
+import AlertTable from "@/components/dashboard/Agatha/tabela-alerta";
+import { alerts } from "@/data/alerts";
+import { AlertDetails } from "@/components/dashboard/Agatha/alerta-detalhes";
+import Encaminhar from "@/components/dashboard/Agatha/encaminhar";
+import { useAuth } from "@/store/auth-store";
+import { LABELS_NIVEIS_ACESSO } from "@/constants/labels-niveis-acesso";
+import { Relogio } from "@/components/relogio";
+import { Card } from "@/components/ui/card";
+export default function AlertasPage() {
+const usuario = useAuth((state) => state.usuario);
+const cargo = LABELS_NIVEIS_ACESSO[usuario?.nivel_acesso ?? 2];
+const [selectedFilter, setSelectedFilter] = useState(null);
+const [selectedAlert, setSelectedAlert] = useState(null);
+
+const filteredAlerts = alerts.filter((alert) => {
+  if (!selectedFilter) return true;
+
+  if (selectedFilter === "pendente") {
+    return alert.encaminhamento === "Pendente";
+  }
+
+  return alert.estado === selectedFilter;
+});
+
+
+    
+return (
+  <div className="flex flex-col gap-6">
+    {/* Cabeçalho */}
+ <header className="flex flex-col gap-1">
+  <Card className="bg-background flex-row items-center justify-between px-4">
+  <div>
+    <h2 className="block text-xs text-muted-foreground">
+      Logado como
+    </h2>
+
+    <h1 className="font-heading text-xl font-semibold">
+      <span className="text-primary-hover">
+        {usuario?.nome} • {cargo}
+      </span>
+    </h1>
+  </div>
+
+  <Relogio />
+</Card>
+</header>
+
+    {/* Cards de resumo */}
+    <section>
+      <SummaryCards
+        selectedFilter={selectedFilter}
+        onFilter={setSelectedFilter}
+      />
+    </section>
+
+    {/* Área principal */}
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+      {/* Fila de alertas */}
+      <div className="xl:col-span-3 min-w-0">
+        <AlertTable
+          alerts={filteredAlerts}
+          selectedAlert={selectedAlert}
+          onSelectAlert={setSelectedAlert}
+        />
+      </div>
+
+      {/* Detalhes do alerta */}
+      <div className="min-w-0 flex flex-col gap-2">
+  <AlertDetails alert={selectedAlert} />
+  <Encaminhar alert={selectedAlert} />
+</div>
+    </section>
+  </div>
+);
+
+}

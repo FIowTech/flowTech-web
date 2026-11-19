@@ -7,7 +7,7 @@ export default function DashboardLayout() {
       <Sidebar />
 
       {/* Conteúdo Principal */}
-      <main className="max-w-6xl w-full mx-auto flex flex-col p-6">
+      <main className="w-full max-w-[1600px] mx-auto flex flex-col p-6">
         <Outlet />
       </main>
     </div>

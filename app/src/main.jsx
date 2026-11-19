@@ -17,6 +17,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { ThemeProvider } from "./components/theme-provider";
 import ConfiguracoesPage from "./pages/configuracao-page";
+import AlertasPage from "@/pages/alertas-page"
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -47,6 +48,7 @@ export function App() {
           <Route path="/embarcados/:id" element={<EmbarcadosDetalhesPage />} />
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           <Route path="/equipe" element={<EquipePage />} />
+          <Route path="/alertas" element={<AlertasPage />} />
           <Route path="/configuracoes" element={<ConfiguracoesPage />} />
         </Route>
       ) : (
