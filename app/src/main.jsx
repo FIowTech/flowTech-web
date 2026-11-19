@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toast";
 import "@/index.css";
 import AuthLayout from "@/pages/auth-layout";
 import DashboardLayout from "@/pages/dashboard-layout";
-import EmbarcadosDetailsPage from "@/pages/embarcado-details-page";
+import EmbarcadosDetalhesPage from "@/pages/embarcado-detalhes-page";
 import EmbarcadosPage from "@/pages/embarcados-page";
 import EmpresaPage from "@/pages/empresa-page";
 import EquipePage from "@/pages/equipe-page";
@@ -15,8 +15,8 @@ import { useAuth } from "@/store/auth-store";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
-import ConfiguracoesPage from "./pages/configuracao-page";
 import { ThemeProvider } from "./components/theme-provider";
+import ConfiguracoesPage from "./pages/configuracao-page";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -44,7 +44,7 @@ export function App() {
         <Route element={<DashboardLayout />}>
           <Route index element={<HomePage />} />
           <Route path="/embarcados" element={<EmbarcadosPage />} />
-          <Route path="/embarcados/:id" element={<EmbarcadosDetailsPage />} />
+          <Route path="/embarcados/:id" element={<EmbarcadosDetalhesPage />} />
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           <Route path="/equipe" element={<EquipePage />} />
           <Route path="/configuracoes" element={<ConfiguracoesPage />} />
