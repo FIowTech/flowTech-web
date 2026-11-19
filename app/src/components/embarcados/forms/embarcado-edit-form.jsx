@@ -16,11 +16,40 @@ import { useState } from "react";
 import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
+import { useDeleteEmbarcado } from "@/hooks/useDeleteEmbarcados";
 
-export function EmbarcadoEditForm({ embarcado }) {
+export function EmbarcadoEditForm({ embarcado, refetchHandler }) {
   const authToken = useAuth((state) => state.token);
 
   const [isSendingForm, setIsSendingForm] = useState(false);
+
+  const { deletarEmbarcado, isDeleting } = useDeleteEmbarcado();
+  const [dialogEditarAberto, setDialogEditarAberto] = useState(false);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const formId = `editar-embarcado-form-${embarcado.id_embarcado}`;
+
+  async function handleDelete() {
+    try {
+      await deletarEmbarcado(embarcado.id_embarcado);
+
+      toast.add({
+        description: "Servidor deletado com sucesso!",
+        type: "success",
+      });
+
+      setDialogAberto(false);
+
+      if (refetchHandler) {
+        await refetchHandler();
+      }
+
+    } catch (error) {
+      toast.add({
+        description: error.message || "Erro ao deletar servidor.",
+        type: "error",
+      });
+    }
+  }
 
   const [informacoesGerais, setInformacoesGerais] = useState({
     endereco_mac: embarcado.endereco_mac,
@@ -28,7 +57,7 @@ export function EmbarcadoEditForm({ embarcado }) {
     apelido: embarcado.apelido,
   });
 
-  const [endereco, setEndereco] = useState(embarcado.endereco);
+  const [endereco, setEndereco] = useState(embarcado.endereco ?? {});
 
   const [componentesMonitorados, setComponentesMonitorados] = useState(
     embarcado.parametros,
@@ -36,18 +65,11 @@ export function EmbarcadoEditForm({ embarcado }) {
 
   const isInformacoesGeraisValid = true;
 
-  const isEnderecoValid = Object.entries(endereco)
-    .filter((entry) => entry[0] !== "complemento")
-    .every((entry) => entry[1] !== null);
-
   const isComponentesMonitoradosValid = componentesMonitorados.some(
     (c) => c.status === 1,
   );
 
-  const isFormValid =
-    isInformacoesGeraisValid &&
-    isEnderecoValid &&
-    isComponentesMonitoradosValid;
+  const isFormValid = isInformacoesGeraisValid && isComponentesMonitoradosValid;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,12 +89,10 @@ export function EmbarcadoEditForm({ embarcado }) {
         endereco,
         componentes: Object.fromEntries(componentesMap),
       };
-      console.log(fields);
-
       const response = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/embarcados/cadastrar`,
+        `${import.meta.env.VITE_BASE_API_URL}/embarcados/${embarcado.id_embarcado}`,
         {
-          method: "POST",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${authToken}`,
@@ -83,14 +103,16 @@ export function EmbarcadoEditForm({ embarcado }) {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Não foi possível atualizar o embarcado.");
       }
 
       toast.add({ description: data.message, type: "success" });
+      setDialogEditarAberto(false);
+      await refetchHandler?.();
     } catch (error) {
       const message =
         (error instanceof Error && error.message) ||
-        "Houve um error ao cadastrar o Embarcado.";
+        "Houve um erro ao atualizar o embarcado.";
       toast.add({ description: message, type: "error" });
     } finally {
       setIsSendingForm(false);
@@ -98,7 +120,7 @@ export function EmbarcadoEditForm({ embarcado }) {
   };
 
   return (
-    <Dialog>
+    <Dialog open={dialogEditarAberto} onOpenChange={setDialogEditarAberto}>
       <DialogTrigger
         render={
           <Button className="flex items-center gap-2 cursor-pointer">
@@ -108,15 +130,14 @@ export function EmbarcadoEditForm({ embarcado }) {
       />
       <DialogContent className="sm:max-w-5xl max-h-[90vh] no-scrollbar overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cadastro de Embarcado</DialogTitle>
+          <DialogTitle>Editar embarcado</DialogTitle>
           <DialogDescription>
-            Todos os membros da sua equipe poderão ver o embarcado que você
-            cadastrar.
+            Atualize as informações do embarcado.
           </DialogDescription>
         </DialogHeader>
 
         <form
-          id="criar-embarcado-form"
+          id={formId}
           onSubmit={handleSubmit}
           className="flex flex-col gap-8"
         >
@@ -139,22 +160,73 @@ export function EmbarcadoEditForm({ embarcado }) {
           />
         </form>
 
-        <DialogFooter>
+        <DialogFooter className="flex justify-between items-center">
+          {/* Botão que aciona a abertura do Dialog de exclusão */}
           <Button
-            type="submit"
-            form="criar-embarcado-form"
-            disabled={isSendingForm || !isFormValid}
+            variant="destructive"
+            onClick={() => setDialogAberto(true)}
           >
-            {isSendingForm ? (
-              <span className="flex items-center space-x-2">
-                <Spinner /> Cadastrando
-              </span>
-            ) : (
-              "Cadastrar"
-            )}
+            Deletar
           </Button>
+
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              form={formId}
+              disabled={isSendingForm || !isFormValid}
+            >
+              {isSendingForm ? (
+                <span className="flex items-center space-x-2">
+                  <Spinner /> Salvando
+                </span>
+              ) : (
+                "Salvar alterações"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog
+        open={dialogAberto}
+        onOpenChange={setDialogAberto}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Confirmar exclusão?
+            </DialogTitle>
+
+            <DialogDescription>
+              Tem certeza que deseja deletar este servidor?
+              Essa ação não poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <span className="flex items-center space-x-2">
+                  <Spinner /> Deletando...
+                </span>
+              ) : (
+                "Sim, deletar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

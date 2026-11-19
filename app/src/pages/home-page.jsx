@@ -23,6 +23,7 @@ import {
 import { pegarStatusServidor } from "@/utils/status-servidor";
 import { BellIcon, CameraIcon, HardDrivesIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 
 // Variáveis mockadas e temporárias
 const tempAtualizadoEm = "16:15";
@@ -45,8 +46,12 @@ export default function HomePage() {
   // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
   const metricas = useMetricasMock();
 
+
+  const [searchParams] = useSearchParams();
+  const idUrl = searchParams.get("selecionado");
+
   const [busca, setBusca] = useState("");
-  const [selecionadoId, setSelecionadoId] = useState(null);
+  const [selecionadoId, setSelecionadoId] = useState(idUrl ? Number(idUrl) : null);
   const [filtros, setFiltros] = useState(filtrosIniciais);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [visao, setVisao] = useState("mapa"); // "mapa" ou "calor"

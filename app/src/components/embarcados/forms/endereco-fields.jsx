@@ -98,7 +98,11 @@ export function EnderecoFields({ fields, handler, editing }) {
     return () => clearTimeout(timer);
   }, [editing, cepInput, handler]);
 
-  const handleCepChange = (e) => setCepInput(mascaraCep(e.target.value));
+  const handleCepChange = (e) => {
+    const value = mascaraCep(e.target.value);
+    setCepInput(value);
+    handler((prev) => ({ ...prev, cep: value.replace(/\D/g, "") }));
+  };
 
   const handleKmChange = (e) =>
     handler((prev) => ({ ...prev, km: e.target.value }));
@@ -236,7 +240,7 @@ export function EnderecoFields({ fields, handler, editing }) {
               value={fields.complemento}
               onChange={handleComplementoChange}
               maxLength={MAX_CHARACTERS_COMPLEMENTO}
-              disabled={isLoading}
+              disabled={isLoading || editing}
             />
             <InputGroupAddon align="inline-end">
               <InputGroupText>

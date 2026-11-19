@@ -18,7 +18,7 @@ import { ComponentesMonitoradosFields } from "./componentes-monitorados-fields";
 import { EnderecoFields } from "./endereco-fields";
 import { InformacoesGeraisFields } from "./informacoes-gerais-fields";
 
-export function EmbarcadoCreateForm() {
+export function EmbarcadoCreateForm({ refetchHandler }) {
   const authToken = useAuth((state) => state.token);
   const { componentes, isLoading } = useFetchComponentes();
 
@@ -113,6 +113,7 @@ export function EmbarcadoCreateForm() {
       }
 
       toast.add({ description: data.message, type: "success" });
+      refetchHandler()
     } catch (error) {
       const message =
         (error instanceof Error && error.message) ||

@@ -176,8 +176,49 @@ async function editar(empresaId, idEmbarcado, campos = {}) {
       }
     }
 
-    // 2. Atualiza os campos de Embarcado
-    const chavesEmbarcado = chaves.filter((chave) => chave !== "componentes");
+    // 2. Se requisitado, atualiza o endereço vinculado
+    if (campos.endereco) {
+      const [embarcado] = await conn.execute(
+        "SELECT endereco_id FROM embarcado WHERE empresa_id = ? AND id_embarcado = ?",
+        [empresaId, idEmbarcado],
+      );
+
+      const colunasEndereco = [
+        "cep",
+        "logradouro",
+        "bairro",
+        "localidade",
+        "uf",
+        "numero",
+        "complemento",
+        "km",
+        "sentido",
+        "lat",
+        "lon",
+      ];
+      const colunasParaAtualizar = colunasEndereco.filter(
+        (coluna) => campos.endereco[coluna] !== undefined,
+      );
+
+      if (colunasParaAtualizar.length > 0) {
+        const enderecoTratado = colunasParaAtualizar
+          .map((coluna) => `${coluna} = ?`)
+          .join(", ");
+        const valoresEndereco = colunasParaAtualizar.map(
+          (coluna) => campos.endereco[coluna],
+        );
+
+        await conn.execute(
+          `UPDATE endereco SET ${enderecoTratado} WHERE id_endereco = ?`,
+          [...valoresEndereco, embarcado[0].endereco_id],
+        );
+      }
+    }
+
+    // 3. Atualiza os campos do embarcado
+    const chavesEmbarcado = chaves.filter(
+      (chave) => chave !== "componentes" && chave !== "endereco",
+    );
 
     if (chavesEmbarcado.length > 0) {
       const camposTratados = chavesEmbarcado

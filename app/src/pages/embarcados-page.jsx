@@ -1,8 +1,10 @@
 import { GraficoLinha } from "@/components/dashboard/graficos";
 import { MetricaPainel } from "@/components/dashboard/metrica-painel";
+import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-create-form";
+import { EmbarcadoEditForm } from "@/components/embarcados/forms/embarcado-edit-form";
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
@@ -17,12 +19,32 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { pegarStatusServidor } from "@/utils/status-servidor";
+import ModalDetalhesEmbarcado from "./embarcado-aba";
 
 const cores = {
   verde: "#36c876",
   amarelo: "#eebb4d",
   cinza: "#515c54",
 };
+
+function obterLimites(servidor, componente, limiteMaxPadrao) {
+  const parametro = servidor.parametros?.find(
+    (item) =>
+      item.status === 1 &&
+      `${item.nome ?? ""} ${item.descricao ?? ""}`
+        .toLowerCase()
+        .includes(componente),
+  );
+
+  return {
+    limiteMax:
+      parametro?.limite_max ??
+      servidor[`limite_max_${componente}`] ??
+      limiteMaxPadrao,
+    limiteMin: parametro?.limite_min ?? null,
+  };
+}
 
 export default function EmbarcadosPage() {
   const navigate = useNavigate();
@@ -40,20 +62,28 @@ export default function EmbarcadosPage() {
   const [busca, setBusca] = useState("");
   const [expandidoId, setExpandidoId] = useState(idUrl);
   const [abaDetalhe, setAbaDetalhe] = useState("processos");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Atualiza o expandido se o parâmetro na URL mudar
+  const [modalAberto, setModalAberto] = useState(false);
+  const [servidorSelecionadoModal, setServidorSelecionadoModal] = useState(null);
+  const [abaInicialModal, setAbaInicialModal] = useState("cpu");
+
+  const abrirModal = (servidor, aba) => {
+    setServidorSelecionadoModal(servidor);
+    setAbaInicialModal(aba);
+    setModalAberto(true);
+  };
+
   useEffect(() => {
     if (idUrl) {
       setExpandidoId(idUrl);
     }
   }, [idUrl]);
 
-  // Função para redirecionar de volta para o mapa com aquele servidor selecionado
   const handleVerNoMapa = (idEmbarcado) => {
     navigate(`/?selecionado=${idEmbarcado}`);
   };
 
-  // Ordenação e Filtro: Crítico (0/vermelho) -> Alerta (amarelo) -> OK (1/verde)
   const embarcadosFiltrados = useMemo(() => {
     if (!embarcados) return [];
 
@@ -71,20 +101,18 @@ export default function EmbarcadosPage() {
       return texto.toLowerCase().includes(termo);
     });
 
-    // Ordena priorizando: Crítico (0) -> Atenção (2) -> Controlado/OK (1)
     return filtrados.sort((a, b) => {
-      // Função auxiliar para atribuir peso de prioridade (quanto menor o número, mais acima ele fica)
-      const obterPeso = (status) => {
-        if (status === 0) return 1; // Crítico em primeiro
-        if (status === 2) return 2; // Atenção em segundo
-        return 3;                   // Controlado/OK por último (status 1 ou outros)
+      const obterPeso = (servidorItem) => {
+        const st = pegarStatusServidor(servidorItem);
+        if (st === "critico") return 1;
+        if (st === "alerta") return 2;
+        return 3;
       };
 
-      return obterPeso(a.status) - obterPeso(b.status);
+      return obterPeso(a) - obterPeso(b);
     });
   }, [busca, embarcados]);
 
-  // Média do disco simulada
   let somaDisco = 0;
   for (const valor of metricas.disco.usado) {
     somaDisco += valor;
@@ -93,7 +121,6 @@ export default function EmbarcadosPage() {
 
   return (
     <div className="w-full flex flex-col space-y-6">
-      {/* Topbar */}
       <Card className="bg-background flex flex-row items-center justify-between px-4 py-4 border border-border rounded-md">
         <div>
           <h2 className="block text-xs text-muted-foreground">Embarcados de</h2>
@@ -105,7 +132,6 @@ export default function EmbarcadosPage() {
         <Relogio />
       </Card>
 
-      {/* Lista de Embarcados com Busca e Ordenação */}
       <div className="bg-background p-4 flex flex-col space-y-6 rounded-md border-2 border-border">
         <div className="w-full flex items-center justify-between">
           <h2 className="text-xl font-semibold">
@@ -116,18 +142,24 @@ export default function EmbarcadosPage() {
             )
           </h2>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <EmbarcadoCreateForm refetchHandler={refetch} />
+
             <Button
               variant="outline"
               className="flex items-center gap-2 cursor-pointer"
-              onClick={refetch}
+              disabled={isRefreshing}
+              onClick={async () => {
+                setIsRefreshing(true);
+                await refetch();
+                setTimeout(() => setIsRefreshing(false), 500);
+              }}
             >
-              <ArrowsCounterClockwiseIcon />
+              <ArrowsCounterClockwiseIcon className={isRefreshing} />
             </Button>
           </div>
         </div>
 
-        {/* Barra de Pesquisa */}
         <div className="w-full">
           <input
             type="text"
@@ -146,42 +178,38 @@ export default function EmbarcadosPage() {
           <div className="flex flex-col space-y-3">
             {embarcadosFiltrados.map((servidor) => {
               const isExpanded = String(expandidoId) === String(servidor.id_embarcado);
-              const statusServidor = servidor.status ?? 1; // 0: Crítico, 1: Ok (exemplo)
-
+              const statusString = pegarStatusServidor(servidor);     
               return (
                 <div key={servidor.id_embarcado} className="flex flex-col">
-                  {/* Card do Embarcado */}
                   <div className="flex items-center justify-between bg-background border border-border rounded-md p-4 shadow-sm hover:border-primary/50 transition-all">
                     <div className="flex items-center gap-4">
-                      {/* Ícone de Status / Check */}
                       <div className={`p-2 rounded-md border flex items-center justify-center ${
-                        statusServidor === 0 
+                        statusString === "critico" 
                           ? "border-red-500 text-red-500 bg-red-500/10" 
-                          : statusServidor === 2 
+                          : statusString === "alerta" 
                           ? "border-yellow-500 text-yellow-500 bg-yellow-500/10" 
                           : "border-green-500 text-green-500 bg-green-500/10"
                       }`}>
-                        {statusServidor === 0 || statusServidor === 2 ? (
+                        {statusString === "critico" || statusString === "alerta" ? (
                           <WarningCircleIcon className="w-5 h-5" />
                         ) : (
                           <CheckIcon className="w-5 h-5" />
                         )}
                       </div>
 
-                      {/* Informações Básicas */}
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-heading font-semibold text-base">
                             {servidor.apelido}
                           </h3>
                           <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                            statusServidor === 0 
+                            statusString === "critico" 
                               ? "border-red-500 text-red-500" 
-                              : statusServidor === 2 
+                              : statusString === "alerta" 
                               ? "border-yellow-500 text-yellow-500" 
                               : "border-green-500 text-green-500"
                           }`}>
-                            {statusServidor === 0 ? "Crítico" : statusServidor === 2 ? "Atenção" : "Controlado"}
+                            {statusString === "critico" ? "Crítico" : statusString === "alerta" ? "Atenção" : "Controlado"}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -190,7 +218,6 @@ export default function EmbarcadosPage() {
                       </div>
                     </div>
 
-                    {/* Ações da Direita */}
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -201,6 +228,8 @@ export default function EmbarcadosPage() {
                       >
                         <MapPinIcon className="w-4 h-4" />
                       </Button>
+
+                      <EmbarcadoEditForm embarcado={servidor} refetchHandler={refetch} />
 
                       <Button
                         variant="outline"
@@ -215,10 +244,8 @@ export default function EmbarcadosPage() {
                     </div>
                   </div>
 
-                  {/* Seção Expansível com Gráficos / Alertas (Baseado na Dashboard) */}
                   {isExpanded && (
                     <div className="mt-2 p-4 border border-border rounded-md bg-background/50 flex flex-col space-y-4">
-                      {/* Switch Processos | Alertas */}
                       <div className="flex items-center justify-center gap-4 py-2 border-b border bg-background p-1 rounded-lg">
                         <div className="flex items-center justify-center gap-2 py-2 border-b border-border">
                           <button
@@ -248,75 +275,98 @@ export default function EmbarcadosPage() {
 
                       {abaDetalhe === "processos" ? (
                         <div className="grid gap-4 lg:grid-cols-2">
-                          <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
-                            <GraficoLinha
-                              labels={metricas.horarios}
-                              linhas={[
-                                {
-                                  nome: "Uso de CPU",
-                                  valores: metricas.cpu.valores,
-                                  cor: cores.verde,
-                                },
-                              ]}
-                              unidade="%"
-                              max={100}
-                              area
-                            />
-                          </MetricaPainel>
-
-                          <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
-                            <GraficoLinha
-                              labels={metricas.horarios}
-                              linhas={[
-                                {
-                                  nome: "Uso de RAM",
-                                  valores: metricas.ram.valores,
-                                  cor: cores.amarelo,
-                                },
-                              ]}
-                              unidade="GiB"
-                              area
-                            />
-                          </MetricaPainel>
-
-                          <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
-                            <GraficoLinha
-                              labels={metricas.horarios}
-                              linhas={[
-                                {
-                                  nome: "Download",
-                                  valores: metricas.rede.download,
-                                  cor: cores.verde,
-                                },
-                                {
-                                  nome: "Upload",
-                                  valores: metricas.rede.upload,
-                                  cor: cores.cinza,
-                                },
-                              ]}
-                              unidade="Mbps"
-                            />
-                          </MetricaPainel>
-
-                          <MetricaPainel
-                            titulo="Métricas Disco"
-                            descricao="Média de espaço usado neste mês"
-                            valor={mediaDisco + " GB"}
+                          <div
+                            onClick={() => abrirModal(servidor, "cpu")}
+                            className="cursor-pointer transition-transform hover:scale-[1.01]"
                           >
-                            <GraficoLinha
-                              labels={metricas.disco.dias}
-                              linhas={[
-                                {
-                                  nome: "Disco usado",
-                                  valores: metricas.disco.usado,
-                                  cor: cores.verde,
-                                },
-                              ]}
-                              unidade="GB"
-                              max={metricas.disco.capacidade}
-                              area
-                            />
-                          </MetricaPainel>
+                            <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
+                              <GraficoLinha
+                                labels={metricas.horarios}
+                                linhas={[
+                                  {
+                                    nome: "Uso de CPU",
+                                    valores: metricas.cpu.valores,
+                                    cor: cores.verde,
+                                  },
+                                ]}
+                                unidade="%"
+                                max={100}
+                                area
+                                {...obterLimites(servidor, "cpu", 90)}
+                              />
+                            </MetricaPainel>
+                          </div>
+
+                          <div
+                            onClick={() => abrirModal(servidor, "ram")}
+                            className="cursor-pointer transition-transform hover:scale-[1.01]"
+                          >
+                            <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
+                              <GraficoLinha
+                                labels={metricas.horarios}
+                                linhas={[
+                                  {
+                                    nome: "Uso de RAM",
+                                    valores: metricas.ram.valores,
+                                    cor: cores.amarelo,
+                                  },
+                                ]}
+                                unidade="GiB"
+                                area
+                                {...obterLimites(servidor, "ram", 80)}
+                              />
+                            </MetricaPainel>
+                          </div>
+
+                          <div
+                            onClick={() => abrirModal(servidor, "rede")}
+                            className="cursor-pointer transition-transform hover:scale-[1.01]"
+                          >
+                            <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
+                              <GraficoLinha
+                                labels={metricas.horarios}
+                                linhas={[
+                                  {
+                                    nome: "Download",
+                                    valores: metricas.rede.download,
+                                    cor: cores.verde,
+                                  },
+                                  {
+                                    nome: "Upload",
+                                    valores: metricas.rede.upload,
+                                    cor: cores.cinza,
+                                  },
+                                ]}
+                                unidade="Mbps"
+                              />
+                            </MetricaPainel>
+                          </div>
+
+                          <div
+                            onClick={() => abrirModal(servidor, "disco")}
+                            className="cursor-pointer transition-transform hover:scale-[1.01]"
+                          >
+                            <MetricaPainel
+                              titulo="Métricas Disco"
+                              descricao="Média de espaço usado neste mês"
+                              valor={mediaDisco + " GB"}
+                            >
+                              <GraficoLinha
+                                labels={metricas.disco.dias}
+                                linhas={[
+                                  {
+                                    nome: "Disco usado",
+                                    valores: metricas.disco.usado,
+                                    cor: cores.verde,
+                                  },
+                                ]}
+                                unidade="GB"
+                                max={4500}
+                                area
+                                {...obterLimites(servidor, "disco", 4500)}
+                              />
+                            </MetricaPainel>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex flex-col space-y-3 py-2">
@@ -338,6 +388,13 @@ export default function EmbarcadosPage() {
           </div>
         )}
       </div>
+
+      <ModalDetalhesEmbarcado
+        servidor={servidorSelecionadoModal}
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        abaInicial={abaInicialModal}
+      />
     </div>
   );
 }
