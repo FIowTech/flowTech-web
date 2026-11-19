@@ -23,7 +23,8 @@ export const useAuth = create()(
       cadastrar: (credentials) => cadastrar(credentials, set),
       login: (credentials) => login(credentials, set),
       logout: () => logout(set),
-      configurarJira: (jiraData) => configurarJira(jiraData, set, get),
+      salvarConfiguracoesJira: (configuracaoJira) =>
+        salvarConfiguracoesJira(configuracaoJira, set, get),
       buscarEmpresa: () => buscarEmpresa(set, get)    }),
     {
       name: "auth-storage",
@@ -121,7 +122,7 @@ function logout(set) {
 }
 
 
-async function configurarJira(jiraData, set, get) {
+async function salvarConfiguracoesJira(configuracaoJira, set, get) {
   set({ isPending: true, error: null });
 
   try {
@@ -135,7 +136,7 @@ async function configurarJira(jiraData, set, get) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(jiraData),
+        body: JSON.stringify(configuracaoJira),
       },
     );
 

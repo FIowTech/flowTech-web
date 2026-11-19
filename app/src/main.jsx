@@ -15,7 +15,7 @@ import { useAuth } from "@/store/auth-store";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
-import ConfiguracoesPage from "./pages/configuracao-page";
+import JiraPage from "./pages/jira-page";
 import { ThemeProvider } from "./components/theme-provider";
 
 createRoot(document.getElementById("root")).render(
@@ -47,7 +47,7 @@ export function App() {
           <Route path="/embarcados/:id" element={<EmbarcadosDetailsPage />} />
           {/* <Route path="/alertas" element={<AlertasPage />} /> */}
           <Route path="/equipe" element={<EquipePage />} />
-          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+          <Route path="/jira" element={<JiraPage />} />
         </Route>
       ) : (
         <Route path="/" element={<LandingPage />} />

@@ -23,13 +23,15 @@ import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
-export default function ConfigurarJiraPage() {
+export default function JiraPage() {
   const navigate = useNavigate();
-  const configurarJira = useAuth((state) => state.configurarJira);
+  const salvarConfiguracoesJira = useAuth(
+    (state) => state.salvarConfiguracoesJira,
+  );
   const buscarEmpresa = useAuth((state) => state.buscarEmpresa);
   const isPending = useAuth((state) => state.isPending);
 
-  const [jiraData, setJiraData] = useState({
+  const [configuracaoJira, setConfiguracaoJira] = useState({
     jira_email: "",
     jira_base_url: "",
     jira_project_key: "",
@@ -42,13 +44,12 @@ export default function ConfigurarJiraPage() {
 useEffect(() => {
     async function carregarDadosJira() {
       const result = await buscarEmpresa();
-      console.log("Resultado retornado para a página:", result);
 
       if (result.success && result.data) {
         const empresa = Array.isArray(result.data) ? result.data[0] : result.data;
 
         if (empresa) {
-          setJiraData({
+          setConfiguracaoJira({
             jira_email: empresa.jira_email ?? "",
             jira_base_url: empresa.jira_base_url ?? "",
             jira_project_key: empresa.jira_project_key ?? "",
@@ -62,22 +63,22 @@ useEffect(() => {
   }, [buscarEmpresa]);
 
   const handleJiraEmailChange = (e) =>
-    setJiraData((prev) => ({ ...prev, jira_email: e.target.value }));
+    setConfiguracaoJira((prev) => ({ ...prev, jira_email: e.target.value }));
 
   const handleJiraBaseUrlChange = (e) =>
-    setJiraData((prev) => ({ ...prev, jira_base_url: e.target.value }));
+    setConfiguracaoJira((prev) => ({ ...prev, jira_base_url: e.target.value }));
 
   const handleJiraProjectKeyChange = (e) =>
-    setJiraData((prev) => ({ ...prev, jira_project_key: e.target.value }));
+    setConfiguracaoJira((prev) => ({ ...prev, jira_project_key: e.target.value }));
 
   const handleJiraApiKeyChange = (e) =>
-    setJiraData((prev) => ({ ...prev, jira_api_key: e.target.value }));
+    setConfiguracaoJira((prev) => ({ ...prev, jira_api_key: e.target.value }));
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isEmailValid = jiraData.jira_email === "" || emailRegex.test(jiraData.jira_email);
+  const isEmailValid = configuracaoJira.jira_email === "" || emailRegex.test(configuracaoJira.jira_email);
 
   const urlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/;
-  const isBaseUrlValid = jiraData.jira_base_url === "" || urlRegex.test(jiraData.jira_base_url);
+  const isBaseUrlValid = configuracaoJira.jira_base_url === "" || urlRegex.test(configuracaoJira.jira_base_url);
 
   const isFormValid = isEmailValid && isBaseUrlValid;
 
@@ -85,7 +86,7 @@ useEffect(() => {
     e.preventDefault();
     if (!isFormValid) return;
 
-    const result = await configurarJira(jiraData);
+    const result = await salvarConfiguracoesJira(configuracaoJira);
 
     if (!result.success) {
       toast.add({
@@ -100,7 +101,7 @@ useEffect(() => {
       type: "success",
     });
 
-    navigate({ pathname: "/configuracoes", replace: true });
+    navigate({ pathname: "/jira", replace: true });
   };
 
   const toggleApiKeyVisible = () => setApiKeyVisible((prev) => !prev);
@@ -137,7 +138,7 @@ useEffect(() => {
                 <Input
                   id="jira-email"
                   type="text"
-                  value={jiraData.jira_email}
+                  value={configuracaoJira.jira_email}
                   onChange={handleJiraEmailChange}
                 />
               </Field>
@@ -147,7 +148,7 @@ useEffect(() => {
                 <Input
                   id="jira-base-url"
                   type="text"
-                  value={jiraData.jira_base_url}
+                  value={configuracaoJira.jira_base_url}
                   onChange={handleJiraBaseUrlChange}
                 />
               </Field>
@@ -157,7 +158,7 @@ useEffect(() => {
                 <Input
                   id="jira-project-key"
                   type="text"
-                  value={jiraData.jira_project_key}
+                  value={configuracaoJira.jira_project_key}
                   onChange={handleJiraProjectKeyChange}
                 />
               </Field>
@@ -168,7 +169,7 @@ useEffect(() => {
                   <InputGroupInput
                     id="jira-api-key"
                     type={apiKeyVisible ? "text" : "password"}
-                    value={jiraData.jira_api_key}
+                    value={configuracaoJira.jira_api_key}
                     onChange={handleJiraApiKeyChange}
                   />
                   <InputGroupAddon align="block-right">

@@ -11,7 +11,7 @@ import {
   HouseIcon,
   SignOutIcon,
   UsersIcon,
-  GearIcon
+  KeyIcon
 } from "@phosphor-icons/react";
 import { NavLink, useNavigate } from "react-router";
 
@@ -24,7 +24,7 @@ const navitems = [
   { text: "Embarcados", to: "/embarcados", icon: HardDrivesIcon },
   // { text: "Alertas", to: "/alertas", icon: BellIcon },
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
-  { text: "Configurações", to: "/configuracoes", icon: GearIcon },
+  { text: "Jira", to: "/jira", icon: KeyIcon },
 ];
 
 // 0 - dev | 1 - adm | 2 - usuário comum 
