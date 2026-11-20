@@ -11,7 +11,8 @@ import {
   HouseIcon,
   SignOutIcon,
   UsersIcon,
-  GearIcon
+  GearIcon,
+  CarIcon,
 } from "@phosphor-icons/react";
 import { NavLink, useNavigate } from "react-router";
 
@@ -24,6 +25,7 @@ const navitems = [
   { text: "Embarcados", to: "/embarcados", icon: HardDrivesIcon },
   // { text: "Alertas", to: "/alertas", icon: BellIcon },
   { text: "Equipe", to: "/equipe", icon: UsersIcon },
+  { text: "Exposição", to: "/financeiro", icon: CarIcon },
   { text: "Configurações", to: "/configuracoes", icon: GearIcon },
 ];
 
@@ -48,7 +50,7 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-1 h-full justify-between">
         <div className="flex flex-col h-full">
-        {navitems.slice(0,3).map((item) => (
+        {navitems.slice(0,4).map((item) => (
           <SidebarItem
             key={item.to}
             to={item.to}
@@ -66,9 +68,9 @@ export function Sidebar() {
       </div>
 
           <SidebarItem
-            to={navitems[3].to}
-            text={navitems[3].text}
-            icon={navitems[3].icon}
+            to={navitems[4].to}
+            text={navitems[4].text}
+            icon={navitems[4].icon}
           />
         </div>
       
