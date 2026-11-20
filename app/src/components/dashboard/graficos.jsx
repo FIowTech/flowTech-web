@@ -128,3 +128,136 @@ export function GraficoBarras({ labels, valores, cores }) {
 
   return <Bar data={datasets} options={opcoes} />;
 }
+
+export function GraficoBarrasHorizontais({
+  labels,
+  valores,
+  nomeSerie = "Total",
+  cor = "rgba(161, 161, 170, 0.35)",
+  itemSelecionado,
+  onBarClick,
+}) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+
+  const backgroundColors = labels.map((label) =>
+    itemSelecionado && label === itemSelecionado
+      ? isLight
+        ? "rgba(24, 24, 27, 0.85)"
+        : "rgba(244, 244, 245, 0.75)"
+      : cor
+  );
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: nomeSerie,
+        data: valores,
+        backgroundColor: backgroundColors,
+        borderColor: isLight ? "rgba(113, 113, 122, 0.5)" : "rgba(161, 161, 170, 0.6)",
+        borderWidth: 1,
+        borderRadius: { topRight: 4, bottomRight: 4 },
+        barThickness: 18,
+      },
+    ],
+  };
+
+  const opcoes = {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    onClick: (_, elements) => {
+      if (elements.length > 0 && onBarClick) {
+        const index = elements[0].index;
+        onBarClick(labels[index]);
+      }
+    },
+    onHover: (event, elements) => {
+      if (event.native?.target) {
+        event.native.target.style.cursor =
+          elements.length > 0 && onBarClick ? "pointer" : "default";
+      }
+    },
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: {
+        border: { display: false },
+        grid: {
+          color: isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+          tickBorderDash: [4, 4],
+        },
+        ticks: {
+          color: isLight ? "#52525b" : "#a1a1aa",
+          font: { size: 12 },
+        },
+      },
+      y: {
+        border: {
+          color: isLight ? "rgba(0, 0, 0, 0.12)" : "rgba(255, 255, 255, 0.12)",
+        },
+        grid: { display: false },
+        ticks: {
+          color: isLight ? "#18181b" : "#f4f4f5",
+          font: { size: 12, weight: 500 },
+        },
+      },
+    },
+  };
+
+  return <Bar data={data} options={opcoes} />;
+}
+
+export function GraficoBarrasEmpilhadas({ labels, series }) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+
+  const datasets = series.map((serie, index) => ({
+    label: serie.nome,
+    data: serie.valores,
+    backgroundColor: serie.cor,
+    barThickness: 28,
+    borderRadius: index === series.length - 1 ? { topLeft: 4, topRight: 4 } : 0,
+  }));
+
+  const opcoes = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        mode: "index",
+        intersect: false,
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        border: {
+          color: isLight ? "rgba(0, 0, 0, 0.12)" : "rgba(255, 255, 255, 0.12)",
+        },
+        grid: { display: false },
+        ticks: {
+          color: isLight ? "#52525b" : "#a1a1aa",
+          font: { size: 12 },
+        },
+      },
+      y: {
+        stacked: true,
+        border: { display: false },
+        grid: {
+          color: isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+          tickBorderDash: [4, 4],
+        },
+        ticks: {
+          color: isLight ? "#52525b" : "#a1a1aa",
+          font: { size: 12 },
+        },
+      },
+    },
+  };
+
+  return <Bar data={{ labels, datasets }} options={opcoes} />;
+}
