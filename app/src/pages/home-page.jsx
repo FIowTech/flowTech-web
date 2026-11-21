@@ -67,7 +67,7 @@ export default function HomePage() {
       </div>
 
       {/* resumo */}
-      <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
+      {/* <section className="grid grid-cols-1 gap-20 md:grid-cols-2">
         <ResumoCard
           titulo="Pórticos Monitorados"
           icon={HardDrivesIcon}
@@ -89,9 +89,9 @@ export default function HomePage() {
           <span className="text-4xl ml-10">{embarcadosEmAlerta}</span>
           <span className="text-3xl font-normal">pórticos</span>
         </ResumoCard>
-      </section>
-      <div className="grid grid-cols-1 gap-75 md:grid-cols-2 ">
-        <div className="h-100 bg-background border border-border p-4 rounded-2xl w-170">
+      </section> */}
+      <div className="flex flex-col">
+        <div className="h-98 bg-background border border-border p-4 rounded-2xl w-275">
           <div className="flex justify-between mr-5 ml-5">
             <span className="font-medium">Quantidade de Alertas por Componente</span>
               <Dialog open={open} onOpenChange={setOpen}>
@@ -185,7 +185,7 @@ export default function HomePage() {
               <span className="text-muted-foreground text-sm">Servidor: {servidorSelecionado}</span>
               <span className="text-muted-foreground text-sm">Período: {periodo}</span>
             </div>
-          <div className="h-60 mt-10 mr-70">
+          <div className="h-55 mt-10 mr-70">
               <GraficoDonut
                 labels={["CPU", "RAM", "Disco","Rede"]}
                 linhas={[
@@ -197,17 +197,22 @@ export default function HomePage() {
               />
             </div>
         </div>
-        <div className="h-100 bg-background border border-border p-4 rounded-2xl w-100">
+        <div className="h-93 bg-background border border-border p-4 rounded-2xl mt-10">
           <span>Chamados da Equipe</span>
-          <div className="h-80">
+          <div className="h-70 w-100">
             <GraficoBarras
               labels={["Márcio", "Kevin", "Agatha"]}
               valores={[35, 52, 28]}
               cores={["#22c55e", "#f59e0b", "#3b82f6"]}
             />
           </div>
+          <div>
+            <span>teste</span>
+          </div>
         </div>
+
       </div>
+
     </div>
   );
 }
