@@ -62,6 +62,14 @@ export function AlertDetails({ alert }) {
         >
           Ver mais detalhes
         </button>
+        
+        <button
+  type="button"
+  disabled
+  className="w-full rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+>
+  Gerar relatório (PDF)
+</button>
       </CardContent>
     </Card>
   );

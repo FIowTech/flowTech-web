@@ -3,7 +3,7 @@ import SummaryCards from "@/components/dashboard/Agatha/cartoes-resumo";
 import AlertTable from "@/components/dashboard/Agatha/tabela-alerta";
 import { alerts } from "@/data/alerts";
 import { AlertDetails } from "@/components/dashboard/Agatha/alerta-detalhes";
-import Encaminhar from "@/components/dashboard/Agatha/encaminhar";
+//import Encaminhar from "@/components/dashboard/Agatha/encaminhar";
 import { useAuth } from "@/store/auth-store";
 import { LABELS_NIVEIS_ACESSO } from "@/constants/labels-niveis-acesso";
 import { Relogio } from "@/components/relogio";
@@ -14,15 +14,24 @@ const cargo = LABELS_NIVEIS_ACESSO[usuario?.nivel_acesso ?? 2];
 const [selectedFilter, setSelectedFilter] = useState(null);
 const [selectedAlert, setSelectedAlert] = useState(null);
 
-const filteredAlerts = alerts.filter((alert) => {
-  if (!selectedFilter) return true;
+const quantidadeAlerta = alerts.filter(
+    (alert) => alert.estado === "alerta"
+  ).length;
 
-  if (selectedFilter === "pendente") {
-    return alert.encaminhamento === "Pendente";
-  }
+  const quantidadeCritico = alerts.filter(
+    (alert) => alert.estado === "critico"
+  ).length;
 
-  return alert.estado === selectedFilter;
-});
+  // Filtra os alertas exibidos na tabela
+  const activeAlerts = alerts.filter(
+    (alert) => alert.estado !== "normal"
+  );
+
+  const filteredAlerts = selectedFilter
+    ? activeAlerts.filter((alert) => alert.estado === selectedFilter)
+    : activeAlerts;
+
+  
 
 
     
@@ -52,6 +61,8 @@ return (
       <SummaryCards
         selectedFilter={selectedFilter}
         onFilter={setSelectedFilter}
+        quantidadeAlerta={quantidadeAlerta}
+        quantidadeCritico={quantidadeCritico}
       />
     </section>
 
@@ -69,7 +80,7 @@ return (
       {/* Detalhes do alerta */}
       <div className="min-w-0 flex flex-col gap-2">
   <AlertDetails alert={selectedAlert} />
-  <Encaminhar alert={selectedAlert} />
+  {/*<Encaminhar alert={selectedAlert} />*/}
 </div>
     </section>
   </div>

@@ -36,18 +36,18 @@ export default function AlertTable({
               <th className="px-4 py-3">Duração</th>
               <th className="px-4 py-3">Recorrência 30 d</th>
               
-              <th className="px-4 py-3">Encaminhamento</th>
+              
             </tr>
           </thead>
 
           <tbody className="divide-y divide-border">
             {alerts.map((alert) => (
               <tr
-                key={alert.id}
-                onClick={() => onSelectAlert(alert)}
-                className={`className="cursor-pointer hover:bg-red-500" ${
+               key={alert.id}
+               onClick={() => onSelectAlert(alert)}
+                className={`cursor-pointer transition-colors hover:bg-muted/50 ${
                   selectedAlert?.id === alert.id ? "bg-primary/10" : ""
-                }`}
+               }`}
               >
                 <td className="px-4 py-4">
                   <span
@@ -72,24 +72,14 @@ export default function AlertTable({
                 </td>
                 <td className="px-4 py-4">{alert.recorrencia}</td>
 
-                <td className="px-4 py-4">
-                  <span
-                    className={
-                      alert.encaminhamento === "Pendente"
-                        ? "text-yellow-600"
-                        : "text-green-600"
-                    }
-                  >
-                    {alert.encaminhamento}
-                  </span>
-                </td>
+                
               </tr>
             ))}
 
             {alerts.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={6}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   Nenhum alerta encontrado.

@@ -8,7 +8,7 @@ export const alerts = [
     inicio: "14/11/2026 08:30",
     duracao: "12 min",
     recorrencia: 0,
-    padrao: "Oscilação normal",
+    
     encaminhamento: "Encaminhado",
   },
   {
@@ -19,7 +19,7 @@ export const alerts = [
     inicio: "14/11/2026 09:15",
     duracao: "35 min",
     recorrencia: 4,
-    padrao: "Degradação contínua",
+    
     encaminhamento: "Pendente",
   },
   {
@@ -30,7 +30,7 @@ export const alerts = [
     inicio: "14/11/2026 07:50",
     duracao: "58 min",
     recorrencia: 8,
-    padrao: "Degradação contínua",
+    
     encaminhamento: "Pendente",
   },
   {
@@ -41,7 +41,7 @@ export const alerts = [
     inicio: "14/11/2026 10:00",
     duracao: "5 min",
     recorrencia: 1,
-    padrao: "Oscilação normal",
+    
     encaminhamento: "Encaminhado",
   },
   {
@@ -52,7 +52,7 @@ export const alerts = [
     inicio: "14/11/2026 09:40",
     duracao: "22 min",
     recorrencia: 3,
-    padrao: "Pico isolado",
+  
     encaminhamento: "Pendente",
   },
   {
@@ -63,7 +63,7 @@ export const alerts = [
     inicio: "14/11/2026 08:10",
     duracao: "1 h 20 min",
     recorrencia: 12,
-    padrao: "Degradação contínua",
+   
     encaminhamento: "Encaminhado",
   },
   {
@@ -74,7 +74,7 @@ export const alerts = [
     inicio: "14/11/2026 10:20",
     duracao: "8 min",
     recorrencia: 0,
-    padrao: "Oscilação normal",
+    
     encaminhamento: "Pendente",
   },
   {
@@ -85,7 +85,7 @@ export const alerts = [
     inicio: "14/11/2026 09:55",
     duracao: "18 min",
     recorrencia: 2,
-    padrao: "Pico isolado",
+    
     encaminhamento: "Encaminhado",
   },
 ];
