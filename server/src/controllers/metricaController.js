@@ -15,7 +15,7 @@ async function buscar(req, res) {
     !metricasService.PERIODOS_VALIDOS.includes(periodo)
   ) {
     return res.status(400).json({
-      message: "Período inválido. Use: 24h, 15d ou 30d.",
+      message: "Período inválido. Use: 1h, 24h, 15d ou 30d.",
     });
   }
 

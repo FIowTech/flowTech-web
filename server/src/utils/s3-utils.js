@@ -2,6 +2,7 @@ const { ListObjectsV2Command, GetObjectCommand } = require("@aws-sdk/client-s3")
 const { getS3Client } = require("../aws/s3-client");
 
 const PERIODOS_VALIDOS = {
+  "1h": 1,
   "24h": 24,
   "15d": 15 * 24,
   "30d": 30 * 24,

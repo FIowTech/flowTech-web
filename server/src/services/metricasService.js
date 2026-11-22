@@ -10,16 +10,16 @@ const {
 
 const PREFIXO_METRICAS = "03-gold/metricas";
 
-function chaveEhValidaParaMac(key, macNormalizado) {
+function isChaveValida(key, macNormalizado) {
   return (
     key.startsWith(`${PREFIXO_METRICAS}/`) &&
     key.includes(`/${macNormalizado}_`) &&
-    key.endsWith("_captura.jsonl")
+    key.endsWith("captura.jsonl")
   );
 }
 
-function parseJsonl(texto) {
-  const linhas = texto
+function parseJSONL(jsonl) {
+  const linhas = jsonl
     .split("\n")
     .map((linha) => linha.trim())
     .filter(Boolean);
@@ -28,20 +28,20 @@ function parseJsonl(texto) {
   for (const linha of linhas) {
     try {
       registros.push(JSON.parse(linha));
-    } catch (_error) {
-      // ignora linha inválida
+    } catch {
+      continue;
     }
   }
 
   return registros;
 }
 
-async function lerJsonlPorKey(key) {
-  const texto = await lerObjetoTextoPorKey({
+async function lerJSONLPorChave(key) {
+  const jsonl = await lerObjetoTextoPorKey({
     bucket: process.env.AWS_S3_BUCKET,
     key,
   });
-  return parseJsonl(texto);
+  return parseJSONL(jsonl);
 }
 
 function agregarMetricas(registros) {
@@ -100,19 +100,15 @@ function agregarMetricas(registros) {
 
   return {
     agregados,
-    ultimo_timestamp: ultimoTimestamp
-      ? ultimoTimestamp.toISOString()
-      : null,
+    ultimo_timestamp: ultimoTimestamp ? ultimoTimestamp.toISOString() : null,
   };
 }
 
-async function getMetricas({
-  endereco_mac,
-  periodo,
-  fim = new Date(),
-}) {
+async function getMetricas({ endereco_mac, periodo, fim = new Date() }) {
   if (!process.env.AWS_S3_BUCKET) {
-    throw new Error("[metricasService] A variável AWS_S3_BUCKET não foi definida.");
+    throw new Error(
+      "[metricasService] A variável AWS_S3_BUCKET não foi definida.",
+    );
   }
 
   const macNormalizado = normalizarMac(endereco_mac);
@@ -126,7 +122,7 @@ async function getMetricas({
       basePrefixo: PREFIXO_METRICAS,
       fim,
       maxHorasBusca: 24,
-      keyFilter: (key) => chaveEhValidaParaMac(key, macNormalizado),
+      keyFilter: (key) => isChaveValida(key, macNormalizado),
     });
 
     if (!arquivoMaisRecente?.Key) {
@@ -139,7 +135,7 @@ async function getMetricas({
       };
     }
 
-    const registros = await lerJsonlPorKey(arquivoMaisRecente.Key);
+    const registros = await lerJSONLPorChave(arquivoMaisRecente.Key);
     registros.sort((a, b) =>
       String(a.timestamp || "").localeCompare(String(b.timestamp || "")),
     );
@@ -159,7 +155,7 @@ async function getMetricas({
   const horasPeriodo = PERIODOS_VALIDOS[periodo];
   if (!horasPeriodo) {
     throw new Error(
-      "[metricasService] Período inválido. Use: 24h, 15d ou 30d.",
+      "[metricasService] Período inválido. Use: 1h, 24h, 15d ou 30d.",
     );
   }
 
@@ -169,7 +165,7 @@ async function getMetricas({
     basePrefixo: PREFIXO_METRICAS,
     inicio,
     fim,
-    keyFilter: (key) => chaveEhValidaParaMac(key, macNormalizado),
+    keyFilter: (key) => isChaveValida(key, macNormalizado),
   });
 
   if (objetos.length === 0) {
@@ -188,7 +184,7 @@ async function getMetricas({
   const registrosFiltrados = [];
   for (const objeto of objetos) {
     if (!objeto.Key) continue;
-    const registros = await lerJsonlPorKey(objeto.Key);
+    const registros = await lerJSONLPorChave(objeto.Key);
 
     for (const registro of registros) {
       const dataRegistro = parseTimestampSaoPaulo(registro.timestamp);

@@ -204,7 +204,7 @@ async function getTraces({
 
   const horasPeriodo = PERIODOS_VALIDOS[periodo];
   if (!horasPeriodo) {
-    throw new Error("[tracesService] Período inválido. Use: 24h, 15d ou 30d.");
+    throw new Error("[tracesService] Período inválido. Use: 1h, 24h, 15d ou 30d.");
   }
 
   const inicio = new Date(fim.getTime() - horasPeriodo * 60 * 60 * 1000);
