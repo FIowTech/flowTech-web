@@ -7,7 +7,7 @@ import { useParams } from "react-router";
 
 export default function EmbarcadosDetailsPage() {
   const { id } = useParams();
-  const { embarcado, isLoading, error } = useFetchEmbarcado(id);
+  const { embarcado } = useFetchEmbarcado(id);
 
   const embarcadoApelido = embarcado ? embarcado.apelido : "Embarcado";
 
@@ -29,7 +29,11 @@ export default function EmbarcadosDetailsPage() {
           Informações Gerais sobre {embarcadoApelido}
         </p>
         <div className="w-full flex items-center space-x-4">
-          <MetricaCard title={"Uso de CPU"} metrica={METRICAS_MOCK.cpu} variation="circle" />
+          <MetricaCard
+            title={"Uso de CPU"}
+            metrica={METRICAS_MOCK.cpu}
+            variation="circle"
+          />
           <MetricaCard title={"Uso de RAM"} metrica={METRICAS_MOCK.ram} />
           <MetricaCard title={"Armazenamento"} metrica={METRICAS_MOCK.disco} />
           <NetworkCard title={"Tráfego de Rede"} network={METRICAS_MOCK.rede} />
