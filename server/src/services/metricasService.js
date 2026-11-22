@@ -1,68 +1,14 @@
-const { ListObjectsV2Command, GetObjectCommand } = require("@aws-sdk/client-s3");
-const { getS3Client } = require("../aws/s3-client");
+const {
+  PERIODOS_VALIDOS,
+  TIMEZONE,
+  normalizarMac,
+  parseTimestampSaoPaulo,
+  buscarArquivoMaisRecentePorHora,
+  listarObjetosPorPeriodoDia,
+  lerObjetoTextoPorKey,
+} = require("../utils/s3-utils");
 
-const PERIODOS_VALIDOS = {
-  "24h": 24,
-  "15d": 15 * 24,
-  "30d": 30 * 24,
-};
-
-const TIMEZONE = "America/Sao_Paulo";
 const PREFIXO_METRICAS = "03-gold/metricas";
-
-function normalizarMac(enderecoMac) {
-  return String(enderecoMac || "")
-    .replace(/[^A-Fa-f0-9]/g, "")
-    .toUpperCase();
-}
-
-function formatarParticaoPorHora(data) {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(data);
-
-  const valores = {};
-  for (const parte of partes) {
-    if (parte.type !== "literal") {
-      valores[parte.type] = parte.value;
-    }
-  }
-
-  return {
-    ano: valores.year,
-    mes: valores.month,
-    dia: valores.day,
-    hora: valores.hour,
-  };
-}
-
-function montarPrefixoHora(data) {
-  const { ano, mes, dia, hora } = formatarParticaoPorHora(data);
-  return `${PREFIXO_METRICAS}/ano=${ano}/mes=${mes}/dia=${dia}/hora=${hora}/`;
-}
-
-function montarPrefixoDia(data) {
-  const { ano, mes, dia } = formatarParticaoPorHora(data);
-  return `${PREFIXO_METRICAS}/ano=${ano}/mes=${mes}/dia=${dia}/`;
-}
-
-function parseTimestampSaoPaulo(valor) {
-  if (typeof valor !== "string") return null;
-
-  const match = valor.match(
-    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/,
-  );
-
-  if (!match) return null;
-
-  const [, ano, mes, dia, hora, min, seg] = match;
-  return new Date(`${ano}-${mes}-${dia}T${hora}:${min}:${seg}-03:00`);
-}
 
 function chaveEhValidaParaMac(key, macNormalizado) {
   return (
@@ -72,67 +18,7 @@ function chaveEhValidaParaMac(key, macNormalizado) {
   );
 }
 
-async function converterBodyParaString(body) {
-  if (!body) return "";
-
-  if (typeof body.transformToString === "function") {
-    return body.transformToString();
-  }
-
-  const chunks = [];
-  for await (const chunk of body) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks).toString("utf-8");
-}
-
-async function listarObjetosPorPrefixo(prefixo, macNormalizado) {
-  const bucket = process.env.AWS_S3_BUCKET;
-  const s3 = getS3Client();
-  let continuationToken = undefined;
-  const encontrados = [];
-
-  do {
-    const command = new ListObjectsV2Command({
-      Bucket: bucket,
-      Prefix: prefixo,
-      ContinuationToken: continuationToken,
-    });
-
-    const response = await s3.send(command);
-    const contents = response.Contents || [];
-
-    for (const item of contents) {
-      if (
-        item.Key &&
-        chaveEhValidaParaMac(item.Key, macNormalizado) &&
-        item.Size > 0
-      ) {
-        encontrados.push(item);
-      }
-    }
-
-    continuationToken = response.IsTruncated
-      ? response.NextContinuationToken
-      : undefined;
-  } while (continuationToken);
-
-  return encontrados;
-}
-
-async function lerJsonlPorKey(key) {
-  const bucket = process.env.AWS_S3_BUCKET;
-  const s3 = getS3Client();
-
-  const response = await s3.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    }),
-  );
-
-  const texto = await converterBodyParaString(response.Body);
+function parseJsonl(texto) {
   const linhas = texto
     .split("\n")
     .map((linha) => linha.trim())
@@ -148,6 +34,14 @@ async function lerJsonlPorKey(key) {
   }
 
   return registros;
+}
+
+async function lerJsonlPorKey(key) {
+  const texto = await lerObjetoTextoPorKey({
+    bucket: process.env.AWS_S3_BUCKET,
+    key,
+  });
+  return parseJsonl(texto);
 }
 
 function agregarMetricas(registros) {
@@ -226,27 +120,14 @@ async function getMetricas({
     throw new Error("[metricasService] O endereço MAC informado é inválido.");
   }
 
-  // Modo padrão: último arquivo inteiro
   if (!periodo) {
-    const maxHorasBusca = 24;
-    let arquivoMaisRecente = null;
-
-    for (let h = 0; h <= maxHorasBusca; h++) {
-      const dataAtual = new Date(fim.getTime() - h * 60 * 60 * 1000);
-      const prefixo = montarPrefixoHora(dataAtual);
-      const objetos = await listarObjetosPorPrefixo(prefixo, macNormalizado);
-
-      if (objetos.length === 0) continue;
-
-      objetos.sort((a, b) => {
-        const dataA = a.LastModified ? new Date(a.LastModified).getTime() : 0;
-        const dataB = b.LastModified ? new Date(b.LastModified).getTime() : 0;
-        return dataB - dataA;
-      });
-
-      arquivoMaisRecente = objetos[0];
-      break;
-    }
+    const arquivoMaisRecente = await buscarArquivoMaisRecentePorHora({
+      bucket: process.env.AWS_S3_BUCKET,
+      basePrefixo: PREFIXO_METRICAS,
+      fim,
+      maxHorasBusca: 24,
+      keyFilter: (key) => chaveEhValidaParaMac(key, macNormalizado),
+    });
 
     if (!arquivoMaisRecente?.Key) {
       return {
@@ -275,7 +156,6 @@ async function getMetricas({
     };
   }
 
-  // Modo histórico: resumo/agregado
   const horasPeriodo = PERIODOS_VALIDOS[periodo];
   if (!horasPeriodo) {
     throw new Error(
@@ -284,23 +164,13 @@ async function getMetricas({
   }
 
   const inicio = new Date(fim.getTime() - horasPeriodo * 60 * 60 * 1000);
-  const prefixos = new Set();
-
-  // Otimização: lista por DIA (e não por HORA), reduzindo drasticamente
-  // a quantidade de chamadas ListObjectsV2 para janelas de 15d/30d.
-  for (
-    let cursor = new Date(inicio);
-    cursor <= fim;
-    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
-  ) {
-    prefixos.add(montarPrefixoDia(cursor));
-  }
-
-  const objetos = [];
-  for (const prefixo of prefixos) {
-    const encontrados = await listarObjetosPorPrefixo(prefixo, macNormalizado);
-    objetos.push(...encontrados);
-  }
+  const objetos = await listarObjetosPorPeriodoDia({
+    bucket: process.env.AWS_S3_BUCKET,
+    basePrefixo: PREFIXO_METRICAS,
+    inicio,
+    fim,
+    keyFilter: (key) => chaveEhValidaParaMac(key, macNormalizado),
+  });
 
   if (objetos.length === 0) {
     return {
