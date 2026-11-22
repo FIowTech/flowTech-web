@@ -67,33 +67,153 @@ export function GraficoLinha({ labels, linhas, unidade, max, area }) {
 }
 
 export function GraficoDonut({ labels, linhas }) {
+  // ==========================================
+  // 1. CONFIGURAÇÃO DOS DADOS DO GRÁFICO
+  // ==========================================
+
   const datasets = linhas.map((linha) => ({
-    label: "Alertas",
+    label: linha.label || "Alertas",
     data: linha.valores,
     backgroundColor: linha.cores,
-    borderWidth: 1,
+    borderWidth: 2,
+    borderColor: "#ffffff",
     borderRadius: 5,
+    spacing: 2,
+    hoverOffset: 5,
   }));
+
+  // ==========================================
+  // 2. CALCULAR QUANTIDADES E PORCENTAGENS
+  // ==========================================
+
+  const totalGeral = linhas.reduce(
+    (soma, linha) =>
+      soma + linha.valores.reduce((total, valor) => total + valor, 0),
+    0
+  );
+
+  const dadosLegenda = labels.map((label, index) => {
+    const total = linhas.reduce(
+      (soma, linha) => soma + (linha.valores[index] || 0),
+      0
+    );
+
+    const percentual =
+      totalGeral > 0 ? (total / totalGeral) * 100 : 0;
+
+    return {
+      nome: label,
+      total: total,
+      percentual: percentual,
+      cor: linhas[0]?.cores[index],
+    };
+  });
+
+  // ==========================================
+  // 3. CONFIGURAÇÕES DO CHART.JS
+  // ==========================================
 
   const opcoes = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: "70%",
+
     plugins: {
+      // Desativamos a legenda padrão
       legend: {
-        display: true,
-        position: "right",
-                labels: {
-          color: "#9ca3af",
-          padding: 15,
-          usePointStyle: true,
-          pointStyle: "circle",
+        display: false,
+      },
+
+      // Configuração do tooltip
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const valor = context.raw;
+
+            const total = context.dataset.data.reduce(
+              (soma, item) => soma + item,
+              0
+            );
+
+            const percentual =
+              total > 0
+                ? ((valor / total) * 100).toFixed(1)
+                : "0.0";
+
+            return `${context.label}: ${valor} (${percentual}%)`;
+          },
         },
       },
     },
   };
 
-  return <Doughnut data={{ labels, datasets }} options={opcoes}/>;
+  // ==========================================
+  // 4. EXIBIÇÃO DO GRÁFICO E LEGENDA
+  // ==========================================
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full h-full">
+
+      {/* GRÁFICO DE ROSCA */}
+      <div className="w-48 h-48 shrink-0">
+        <Doughnut
+          data={{
+            labels: labels,
+            datasets: datasets,
+          }}
+          options={opcoes}
+        />
+      </div>
+
+      {/* LEGENDA PERSONALIZADA */}
+      <div className="flex flex-col gap-1 w-full flex-1 min-w-0">
+
+        {dadosLegenda.map((item, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted/50"
+          >
+
+            {/* BOLINHA COLORIDA E NOME */}
+            <div className="flex items-center gap-3 min-w-0">
+
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{
+                  backgroundColor: item.cor,
+                }}
+              />
+
+              <span className="text-sm font-medium truncate">
+                {item.nome}
+              </span>
+
+            </div>
+
+            {/* QUANTIDADE E PERCENTUAL */}
+            <div className="flex items-center gap-4 shrink-0">
+
+              <span className="text-sm font-semibold min-w-8 text-right">
+                {item.total}
+              </span>
+
+              <span className="text-sm text-muted-foreground min-w-12 text-right">
+                {item.percentual.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}
+                %
+              </span>
+
+            </div>
+
+          </div>
+        ))}
+
+      </div>
+
+    </div>
+  );
 }
 
 export function GraficoBarras({ labels, valores, cores }) {

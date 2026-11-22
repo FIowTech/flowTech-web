@@ -1,12 +1,11 @@
 import { GraficoDonut } from "@/components/dashboard/graficos";
 import { GraficoBarras } from "@/components/dashboard/graficos";
-import { ResumoCard } from "@/components/dashboard/resumo-card";
+import { InsightsPeriodo } from "@/components/dashboard/insights-periodo";
+import { useFetchGoldAlertasComponentes } from "@/hooks/useFetchGoldAlertasComponentes";
 import { Relogio } from "@/components/relogio";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
-import { useMetricasMock } from "@/hooks/useMetricasMock";
 import { useAuth } from "@/store/auth-store";
-import { BellIcon, HardDrivesIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,9 +38,24 @@ export default function HomePage() {
 
   // Estados dos filtros
   const [open, setOpen] = useState(false);
-  // const [servidoresSelecionados, setServidoresSelecionados] = useState([]);
   const [periodo, setPeriodo] = useState("atual");
-  const [servidorSelecionado, setServidorSelecionado] = useState("Todos os Servidores");
+  const [servidorSelecionado, setServidorSelecionado] = useState("todos");
+
+  const servidorApelido = servidorSelecionado === "todos" ? "Todos os servidores": embarcados?.find(
+        (servidor) =>
+          String(servidor.id_embarcado) === String(servidorSelecionado)
+  )?.apelido || servidorSelecionado;
+
+  const {
+    dados: dadosAlertas,
+    componentes: componentesAlertas,
+    totalAlertas,
+    isLoading: carregandoAlertas,
+    error: erroAlertas,
+  } = useFetchGoldAlertasComponentes(
+    periodo,
+    servidorSelecionado,
+  );
 
   // Servidores disponíveis
   const servidoresDisponiveis = embarcados.map((embarcado) => ({
@@ -90,129 +104,155 @@ export default function HomePage() {
           <span className="text-3xl font-normal">pórticos</span>
         </ResumoCard>
       </section> */}
-      <div className="flex flex-col">
-        <div className="h-98 bg-background border border-border p-4 rounded-2xl w-275">
-          <div className="flex justify-between mr-5 ml-5">
-            <span className="font-medium">Quantidade de Alertas por Componente</span>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger
-                  render={
-                    <Button
-                      type="button"
-                      className="cursor-pointer"
-                    >
-                      Filtros
-                    </Button>
-                  }
-                />
-              
-                <DialogContent>
-                  <DialogHeader>
-                    <h1 className="font-bold text-2xl">Filtros da Dashboard</h1>
-                    <h3 className="font-normal">Servidor</h3>
+        <div className="flex flex-row gap-6">
+          <div className="h-98 bg-background border border-border p-4 rounded-2xl w-170">
+            <div className="flex justify-between ml-5">
+              <span className="font-medium">Quantidade de Alertas por Componente</span>
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger
+                    render={
+                      <Button
+                        type="button"
+                        className="cursor-pointer"
+                      >
+                        Filtros
+                      </Button>
+                    }
+                  />
 
-                    <Select
-                      value={servidorSelecionado}
-                      onValueChange={setServidorSelecionado}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione um servidor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Todos os Servidores">
-                          Todos os Servidores
-                        </SelectItem>
-                                  
-                        {embarcados.map((embarcado) => (
-                          <SelectItem
-                            key={embarcado.id_embarcado}
-                            value={String(embarcado.apelido)}
-                          >
-                            {embarcado.apelido}
+                  <DialogContent>
+                    <DialogHeader>
+                      <h1 className="font-bold text-2xl">Filtros da Dashboard</h1>
+                      <h3 className="font-normal">Servidor</h3>
+
+                      <Select
+                        value={servidorApelido}
+                        onValueChange={setServidorSelecionado}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione um servidor" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          <SelectItem value="todos">
+                            Todos os Servidores
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </DialogHeader>
-                
-                  <div className="space-y-5">
-                      
-                    {/* Filtro de período */}
-                    <div className="space-y-3">
-                      <h3 className="font-normal">Período</h3>
-                      
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { label: "Atual", value: "atual" },
-                          { label: "Últimos 7 dias", value: "7d" },
-                          { label: "Últimos 15 dias", value: "15d" },
-                          { label: "Últimos 30 dias", value: "30d" },
-                        ].map((item) => (
-                          <Button
-                            key={item.value}
-                            type="button"
-                            variant={periodo === item.value ? "default" : "outline"}
-                            onClick={() => setPeriodo(item.value)}
-                          >
-                            {item.label}
-                          </Button>
-                        ))}
+
+                          {embarcados.map((embarcado) => (
+                            <SelectItem
+                              key={embarcado.id_embarcado}
+                              value={String(embarcado.id_embarcado)}
+                            >
+                              {embarcado.apelido}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </DialogHeader>
+                        
+                    <div className="space-y-5">
+                        
+                      {/* Filtro de período */}
+                      <div className="space-y-3">
+                        <h3 className="font-normal">Período</h3>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { label: "Atual", value: "atual" },
+                            { label: "Últimos 7 dias", value: "7d" },
+                            { label: "Últimos 15 dias", value: "15d" },
+                            { label: "Últimos 30 dias", value: "30d" },
+                          ].map((item) => (
+                            <Button
+                              key={item.value}
+                              type="button"
+                              variant={periodo === item.value ? "default" : "outline"}
+                              onClick={() => setPeriodo(item.value)}
+                            >
+                              {item.label}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
+                        
                     </div>
+                        
+                    {/* Ações */}
+                    <div className="flex justify-between gap-2 pt-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setServidorSelecionado("todos");
+                          setPeriodo("atual");
+                        }}
+                      >
+                        Limpar filtros
+                      </Button>
                       
-                  </div>
-                      
-                  {/* Ações */}
-                  <div className="flex justify-between gap-2 pt-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setServidorSelecionado("Todos os servidores");
-                        setPeriodo("atual");
-                      }}
-                    >
-                      Limpar filtros
-                    </Button>
-                    
-                    <Button onClick={() => setOpen(false)}>
-                      Aplicar filtros
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                      <Button onClick={() => setOpen(false)}>
+                        Aplicar filtros
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+            </div>
+              <div className="grid grid-cols-1 ml-5">
+                <span className="text-muted-foreground text-sm">Servidor: {servidorApelido}</span>
+                <span className="text-muted-foreground text-sm">Período: {periodo}</span>
+              </div>
+            <div className="mt-10 ml-8">
+                <GraficoDonut
+                  labels={componentesAlertas.map(
+                    (componente) => componente.nome.toUpperCase(),
+                  )}
+                  linhas={[
+                    {
+                      valores: componentesAlertas.map(
+                        (componente) => componente.total,
+                      ),
+                      cores: [
+                        "#ef4444",
+                        "#f59e0b",
+                        "#3b82f6",
+                        "#8b5cf6",
+                      ],
+                    },
+                  ]}
+                />
+            </div>
           </div>
-            <div className="grid grid-cols-1 ml-5">
-              <span className="text-muted-foreground text-sm">Servidor: {servidorSelecionado}</span>
-              <span className="text-muted-foreground text-sm">Período: {periodo}</span>
-            </div>
-          <div className="h-55 mt-10 mr-70">
-              <GraficoDonut
-                labels={["CPU", "RAM", "Disco","Rede"]}
-                linhas={[
-                  {
-                    valores: [5, 4, 3,1],
-                    cores: ["#EF4444", "#F59E0B", "#3B82F6","#5D45EA"],
-                  }
-                ]}
-              />
-            </div>
-        </div>
-        <div className="h-93 bg-background border border-border p-4 rounded-2xl mt-10">
-          <span>Chamados da Equipe</span>
-          <div className="h-70 w-100">
-            <GraficoBarras
-              labels={["Márcio", "Kevin", "Agatha"]}
-              valores={[35, 52, 28]}
-              cores={["#22c55e", "#f59e0b", "#3b82f6"]}
+          <div className="w-100 shrink-0">
+            <InsightsPeriodo
+              totalAlertas={totalAlertas}
+              periodo={periodo}
+              variacaoPercentual={null}
+              servidoresSemAlertas={null}
+              totalServidores={null}
             />
           </div>
-          <div>
-            <span>teste</span>
+
+        </div>
+        <div className="flex flex-row gap-6">
+          <div className="h-93 bg-background border border-border p-4 rounded-2xl mt-3 w-170">
+              <span>Chamados da Equipe</span>
+              <div className="h-70 w-100">
+                <GraficoBarras
+                  labels={["Márcio", "Kevin", "Agatha"]}
+                  valores={[35, 52, 28]}
+                  cores={["#22c55e", "#f59e0b", "#3b82f6"]}
+                />
+              </div>
+          </div>
+          <div className="w-100 shrink-0">
+            {/* <InsightsPeriodo
+              totalAlertas={totalAlertas}
+              periodo={periodo}
+              variacaoPercentual={null}
+              servidoresSemAlertas={null}
+              totalServidores={null}
+            /> */}
           </div>
         </div>
-
-      </div>
-
     </div>
   );
 }
