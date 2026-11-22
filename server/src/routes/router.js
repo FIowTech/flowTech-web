@@ -7,12 +7,18 @@ const empresasRouter = require("./empresas");
 const embarcadosRouter = require("./embarcados");
 const codigoDeAcessoRouter = require("./codigos-acesso");
 const componentesRouter = require("./componentes");
+const metricasRouter = require("./metricas");
+const tracesRouter = require("./traces");
+const logsRouter = require("./logs");
 
 router.use("/usuarios", usuariosRouter);
 router.use("/empresas", authMiddleware, empresasRouter);
 router.use("/embarcados", authMiddleware, embarcadosRouter);
 router.use("/codigos", authMiddleware, codigoDeAcessoRouter);
 router.use("/componentes", authMiddleware, componentesRouter);
+router.use("/metricas", authMiddleware, metricasRouter);
+router.use("/traces", authMiddleware, tracesRouter);
+router.use("/logs", authMiddleware, logsRouter);
 
 module.exports = router;
 

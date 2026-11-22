@@ -181,8 +181,8 @@
   --text-secondary: hsl(132 20% 95.1%);
   --text-muted: hsl(130.91 4.89% 55.88%);
 
-  --background-dark: hsl(135 10.53% 14.9%);
-  --background-light: hsl(135 10.53% 14.9%);
+  --background-light: hsl(135 11% 15%);
+  --background-dark: hsl(135 15% 5%);
 }
 
 @layer base {
