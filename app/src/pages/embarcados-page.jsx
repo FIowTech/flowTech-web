@@ -1,7 +1,6 @@
-import { GraficoLinha } from "@/components/dashboard/graficos";
-import { MetricaPainel } from "@/components/dashboard/metrica-painel";
 import { EmbarcadoCreateForm } from "@/components/embarcados/forms/embarcado-create-form";
 import { EmbarcadoEditForm } from "@/components/embarcados/forms/embarcado-edit-form";
+import MetricasEmbarcado from "@/components/embarcados/metricas-embarcado";
 import { Relogio } from "@/components/relogio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,13 +19,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { pegarStatusServidor } from "@/utils/status-servidor";
-import ModalDetalhesEmbarcado from "./embarcado-aba";
-
-const cores = {
-  verde: "#36c876",
-  amarelo: "#eebb4d",
-  cinza: "#515c54",
-};
 
 function obterLimites(servidor, componente, limiteMaxPadrao) {
   const parametro = servidor.parametros?.find(
@@ -63,16 +55,6 @@ export default function EmbarcadosPage() {
   const [expandidoId, setExpandidoId] = useState(idUrl);
   const [abaDetalhe, setAbaDetalhe] = useState("processos");
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [modalAberto, setModalAberto] = useState(false);
-  const [servidorSelecionadoModal, setServidorSelecionadoModal] = useState(null);
-  const [abaInicialModal, setAbaInicialModal] = useState("cpu");
-
-  const abrirModal = (servidor, aba) => {
-    setServidorSelecionadoModal(servidor);
-    setAbaInicialModal(aba);
-    setModalAberto(true);
-  };
 
   useEffect(() => {
     if (idUrl) {
@@ -112,12 +94,6 @@ export default function EmbarcadosPage() {
       return obterPeso(a) - obterPeso(b);
     });
   }, [busca, embarcados]);
-
-  let somaDisco = 0;
-  for (const valor of metricas.disco.usado) {
-    somaDisco += valor;
-  }
-  const mediaDisco = (somaDisco / metricas.disco.usado.length).toFixed(1);
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -274,100 +250,12 @@ export default function EmbarcadosPage() {
                       </div>
 
                       {abaDetalhe === "processos" ? (
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <div
-                            onClick={() => abrirModal(servidor, "cpu")}
-                            className="cursor-pointer transition-transform hover:scale-[1.01]"
-                          >
-                            <MetricaPainel titulo="Métricas CPU" valor={metricas.cpu.atual}>
-                              <GraficoLinha
-                                labels={metricas.horarios}
-                                linhas={[
-                                  {
-                                    nome: "Uso de CPU",
-                                    valores: metricas.cpu.valores,
-                                    cor: cores.verde,
-                                  },
-                                ]}
-                                unidade="%"
-                                max={100}
-                                area
-                                {...obterLimites(servidor, "cpu", 90)}
-                              />
-                            </MetricaPainel>
-                          </div>
-
-                          <div
-                            onClick={() => abrirModal(servidor, "ram")}
-                            className="cursor-pointer transition-transform hover:scale-[1.01]"
-                          >
-                            <MetricaPainel titulo="Métricas RAM" valor={metricas.ram.atual}>
-                              <GraficoLinha
-                                labels={metricas.horarios}
-                                linhas={[
-                                  {
-                                    nome: "Uso de RAM",
-                                    valores: metricas.ram.valores,
-                                    cor: cores.amarelo,
-                                  },
-                                ]}
-                                unidade="GiB"
-                                area
-                                {...obterLimites(servidor, "ram", 80)}
-                              />
-                            </MetricaPainel>
-                          </div>
-
-                          <div
-                            onClick={() => abrirModal(servidor, "rede")}
-                            className="cursor-pointer transition-transform hover:scale-[1.01]"
-                          >
-                            <MetricaPainel titulo="Métricas Rede" valor={metricas.rede.atual}>
-                              <GraficoLinha
-                                labels={metricas.horarios}
-                                linhas={[
-                                  {
-                                    nome: "Download",
-                                    valores: metricas.rede.download,
-                                    cor: cores.verde,
-                                  },
-                                  {
-                                    nome: "Upload",
-                                    valores: metricas.rede.upload,
-                                    cor: cores.cinza,
-                                  },
-                                ]}
-                                unidade="Mbps"
-                              />
-                            </MetricaPainel>
-                          </div>
-
-                          <div
-                            onClick={() => abrirModal(servidor, "disco")}
-                            className="cursor-pointer transition-transform hover:scale-[1.01]"
-                          >
-                            <MetricaPainel
-                              titulo="Métricas Disco"
-                              descricao="Média de espaço usado neste mês"
-                              valor={mediaDisco + " GB"}
-                            >
-                              <GraficoLinha
-                                labels={metricas.disco.dias}
-                                linhas={[
-                                  {
-                                    nome: "Disco usado",
-                                    valores: metricas.disco.usado,
-                                    cor: cores.verde,
-                                  },
-                                ]}
-                                unidade="GB"
-                                max={4500}
-                                area
-                                {...obterLimites(servidor, "disco", 4500)}
-                              />
-                            </MetricaPainel>
-                          </div>
-                        </div>
+                        <MetricasEmbarcado
+                          key={servidor.id_embarcado}
+                          servidor={servidor}
+                          metricasMock={metricas}
+                          obterLimites={obterLimites}
+                        />
                       ) : (
                         <div className="flex flex-col space-y-3 py-2">
                           <div className="flex items-center justify-between p-3 border border-border rounded-md bg-background">
@@ -389,12 +277,6 @@ export default function EmbarcadosPage() {
         )}
       </div>
 
-      <ModalDetalhesEmbarcado
-        servidor={servidorSelecionadoModal}
-        isOpen={modalAberto}
-        onClose={() => setModalAberto(false)}
-        abaInicial={abaInicialModal}
-      />
     </div>
   );
 }

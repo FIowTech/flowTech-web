@@ -4,7 +4,7 @@ const s3 = require("./s3Service");
 
 const COMPONENTES = ["cpu", "ram", "disco", "rede"];
 
-const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/").replace(/\/?$/, "/");
+const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/metricas/").replace(/\/?$/, "/");
 const HORAS_ATRAS = Number(process.env.GOLD_HORAS_ATRAS ?? 3);
 const TTL_MS = Number(process.env.GOLD_CACHE_SEGUNDOS ?? 15) * 1000;
 
@@ -28,19 +28,19 @@ function normalizarMac(mac) {
 
 const doisDigitos = (n) => String(n).padStart(2, "0");
 
-// Um prefixo por hora, da hora atual para trás. Termina em "<MAC>_" para listar
-// só os arquivos daquele servidor dentro da pasta do grupo.
-function prefixosDasUltimasHoras(mac, componente, { agora = new Date(), horas = HORAS_ATRAS } = {}) {
+// Um prefixo por hora, da hora atual para trás. Os JSONL agora guardam todos
+// os componentes juntos, então basta filtrar pelo MAC no nome do arquivo.
+function prefixosDasUltimasHoras(mac, { agora = new Date(), horas = HORAS_ATRAS } = {}) {
   const fuso = fusoEtlHoras();
   const prefixos = [];
 
   for (let atras = 0; atras < horas; atras++) {
-    // soma o fuso e usa getUTC*: evita depender do fuso do servidor
-    const d = new Date(agora.getTime() + (fuso - atras) * 3_600_000);
+    // Converte a hora atual para o fuso da ETL e volta uma hora por iteração.
+    const d = new Date(agora.getTime() + fuso * 3_600_000 - atras * 3_600_000);
     prefixos.push(
       `${PASTA_GOLD}ano=${d.getUTCFullYear()}/mes=${doisDigitos(d.getUTCMonth() + 1)}` +
         `/dia=${doisDigitos(d.getUTCDate())}/hora=${doisDigitos(d.getUTCHours())}` +
-        `/componente=${componente}/${mac}_`,
+        `/${mac}_`,
     );
   }
   return prefixos;
@@ -104,19 +104,27 @@ const PESO = { critico: 3, alerta: 2, normal: 1 };
 // Mesma convenção que o front já usa em embarcados-page: 0 crítico | 1 ok | 2 atenção
 const STATUS_NUMERICO = { critico: 0, normal: 1, alerta: 2 };
 
-// Junta os JSONs mais recentes de cada grupo em um retrato único do servidor.
-function montarSnapshot(componentes) {
+// Resume o snapshot JSONL no formato usado pelos endpoints atuais.
+function montarSnapshot(snapshot) {
+  if (!snapshot) {
+    return {
+      status: null,
+      nivel: "sem_dados",
+      ultima_leitura: null,
+      componentes: {},
+      alertas: [],
+    };
+  }
+
   const alertas = [];
   let pior = null;
-  let ultimaLeitura = null;
+  const timestamp = snapshot.timestamp ?? null;
+  const componentes = snapshot.componentes ?? {};
 
-  for (const [grupo, json] of Object.entries(componentes)) {
-    if (json.timestamp && (!ultimaLeitura || json.timestamp > ultimaLeitura)) {
-      ultimaLeitura = json.timestamp;
-    }
-
-    for (const p of json.parametros ?? []) {
-      const nivel = nivelDe(p.situacao);
+  for (const [grupo, componente] of Object.entries(componentes)) {
+    const metricas = componente.metricas ?? {};
+    for (const [chave, metrica] of Object.entries(metricas)) {
+      const nivel = nivelDe(metrica.situacao);
       if (!nivel) continue;
 
       if (!pior || PESO[nivel] > PESO[pior]) pior = nivel;
@@ -124,15 +132,20 @@ function montarSnapshot(componentes) {
       if (nivel !== "normal") {
         alertas.push({
           componente: grupo,
-          parametro: p.nome,
-          valor: p.valor,
-          limite_min: p.limite_min,
-          limite_max: p.limite_max,
-          situacao: p.situacao,
+          parametro: metrica.nome ?? chave,
+          valor: metrica.valor_pct ?? metrica.valor,
+          limite_min: metrica.limite_min,
+          limite_max: metrica.limite_max,
+          situacao: metrica.situacao,
           nivel,
-          momento: json.timestamp,
+          momento: timestamp,
         });
       }
+    }
+
+    const nivelComponente = nivelDe(componente.situacao);
+    if (nivelComponente && (!pior || PESO[nivelComponente] > PESO[pior])) {
+      pior = nivelComponente;
     }
   }
 
@@ -141,7 +154,7 @@ function montarSnapshot(componentes) {
   return {
     status: pior ? STATUS_NUMERICO[pior] : null, // null = sem dados
     nivel: pior ?? "sem_dados",
-    ultima_leitura: ultimaLeitura,
+    ultima_leitura: timestamp,
     componentes,
     alertas,
   };
@@ -149,15 +162,33 @@ function montarSnapshot(componentes) {
 
 // ---------- consultas ----------
 
-// Arquivo mais recente de um grupo para um MAC, olhando as últimas horas.
-async function arquivoMaisRecente(mac, componente) {
-  const candidatos = await Promise.all(
-    prefixosDasUltimasHoras(mac, componente).map((p) => s3.getMostRecentObject(p)),
-  );
+function normalizarSnapshots(dados) {
+  if (Array.isArray(dados)) return dados;
+  return dados && typeof dados === "object" ? [dados] : [];
+}
 
-  return candidatos
-    .filter(Boolean)
-    .reduce((a, b) => (!a || b.LastModified > a.LastModified ? b : a), null);
+// Lê os snapshots JSONL do MAC nas partições horárias solicitadas.
+async function carregarSnapshots(mac, horas = HORAS_ATRAS) {
+  return comCache(`leituras|${mac}|${horas}`, async () => {
+    const listas = await Promise.all(
+      prefixosDasUltimasHoras(mac, { horas }).map((prefixo) => s3.listObjects(prefixo)),
+    );
+    const objetos = listas
+      .flat()
+      .sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
+    const porTimestamp = new Map();
+
+    const dados = await mapaComLimite(objetos, 8, (objeto) => s3.getObject(objeto.Key));
+    dados.forEach((arquivo) => {
+      for (const snapshot of normalizarSnapshots(arquivo)) {
+        if (snapshot?.timestamp) porTimestamp.set(snapshot.timestamp, snapshot);
+      }
+    });
+
+    return [...porTimestamp.values()].sort((a, b) =>
+      a.timestamp.localeCompare(b.timestamp),
+    );
+  });
 }
 
 // Último retrato do servidor: cpu, ram, disco e rede + situação geral + alertas.
@@ -165,23 +196,12 @@ function ultimoSnapshot(macBruto) {
   const mac = normalizarMac(macBruto);
 
   return comCache(`snap|${mac}`, async () => {
-    const componentes = {};
-
-    await Promise.all(
-      COMPONENTES.map(async (grupo) => {
-        const arquivo = await arquivoMaisRecente(mac, grupo);
-        if (!arquivo) return;
-
-        const json = await s3.getObject(arquivo.Key);
-        if (json) componentes[grupo] = json;
-      }),
-    );
-
-    return montarSnapshot(componentes);
+    const snapshots = await carregarSnapshots(mac);
+    return montarSnapshot(snapshots.at(-1) ?? null);
   });
 }
 
-// Histórico de um grupo (para os gráficos): um ponto por arquivo, em ordem de tempo.
+// Histórico de um componente: um ponto por snapshot, em ordem de tempo.
 function serie(macBruto, componente, { horas = HORAS_ATRAS, maxPontos = 30 } = {}) {
   if (!COMPONENTES.includes(componente)) {
     throw new ErroValidacao(`Componente inválido. Use: ${COMPONENTES.join(", ")}.`);
@@ -189,54 +209,13 @@ function serie(macBruto, componente, { horas = HORAS_ATRAS, maxPontos = 30 } = {
   const mac = normalizarMac(macBruto);
 
   return comCache(`serie|${mac}|${componente}|${horas}|${maxPontos}`, async () => {
-    const listas = await Promise.all(
-      prefixosDasUltimasHoras(mac, componente, { horas }).map((p) => s3.listObjects(p)),
-    );
-
-    // ano=/mes=/dia=/hora= com zeros à esquerda: ordem alfabética = ordem cronológica
-    const chaves = listas
-      .flat()
-      .map((o) => o.Key)
-      .sort()
-      .slice(-maxPontos);
-
-    const jsons = (await mapaComLimite(chaves, 8, (chave) => s3.getObject(chave))).filter(Boolean);
-
-    // a ETL pode regravar a mesma leitura em execuções seguidas: 1 ponto por timestamp
-    const porTimestamp = new Map();
-    for (const json of jsons) {
-      if (json.timestamp) porTimestamp.set(json.timestamp, json);
-    }
-    const ordenados = [...porTimestamp.values()].sort((a, b) =>
-      a.timestamp.localeCompare(b.timestamp),
-    );
-
-    const nomes = [
-      ...new Set(ordenados.flatMap((j) => (j.parametros ?? []).map((p) => p.nome))),
-    ];
-    const parametros = Object.fromEntries(
-      nomes.map((n) => [n, { limite_min: null, limite_max: null, valores: [], situacoes: [] }]),
-    );
-
-    for (const json of ordenados) {
-      const porNome = new Map((json.parametros ?? []).map((p) => [p.nome, p]));
-
-      for (const nome of nomes) {
-        const p = porNome.get(nome);
-        const alvo = parametros[nome];
-        alvo.valores.push(p?.valor ?? null);
-        alvo.situacoes.push(p?.situacao ?? null);
-        if (p) {
-          alvo.limite_min = p.limite_min;
-          alvo.limite_max = p.limite_max;
-        }
-      }
-    }
+    const snapshots = await carregarSnapshots(mac, horas);
+    const ordenados = snapshots.slice(-maxPontos);
 
     return {
       componente,
-      horarios: ordenados.map((j) => j.timestamp), // "2026-11-14 20:09:14"
-      parametros,
+      horarios: ordenados.map((snapshot) => snapshot.timestamp),
+      leituras: ordenados,
     };
   });
 }

@@ -35,6 +35,8 @@ export function EnderecoFields({ fields, handler, editing }) {
   const [cepInput, setCepInput] = useState(mascaraCep(fields.cep) || "");
 
   useEffect(() => {
+    // Only auto-lookup CEP when not editing (i.e. on create). When editing
+    // we want to keep address fields readonly and prevent auto-updates.
     if (editing) return;
 
     const cepLimpo = cepInput.replace(/\D/g, "");
@@ -99,33 +101,51 @@ export function EnderecoFields({ fields, handler, editing }) {
   }, [editing, cepInput, handler]);
 
   const handleCepChange = (e) => {
+    if (editing) return;
     const value = mascaraCep(e.target.value);
     setCepInput(value);
     handler((prev) => ({ ...prev, cep: value.replace(/\D/g, "") }));
   };
 
-  const handleKmChange = (e) =>
+  const handleKmChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, km: e.target.value }));
+  };
 
-  const handleSentidoChange = (value) =>
+  const handleSentidoChange = (value) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, sentido: value }));
+  };
 
-  const handleLogradouroChange = (e) =>
+  const handleLogradouroChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, logradouro: e.target.value }));
+  };
 
-  const handleBairroChange = (e) =>
+  const handleBairroChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, bairro: e.target.value }));
+  };
 
-  const handleLocalidadeChange = (e) =>
+  const handleLocalidadeChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, localidade: e.target.value }));
+  };
 
-  const handleComplementoChange = (e) =>
+  const handleComplementoChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, complemento: e.target.value }));
+  };
 
-  const handleUfChange = (value) => handler((prev) => ({ ...prev, uf: value }));
+  const handleUfChange = (value) => {
+    if (editing) return;
+    handler((prev) => ({ ...prev, uf: value }));
+  };
 
-  const handleNumeroChange = (e) =>
+  const handleNumeroChange = (e) => {
+    if (editing) return;
     handler((prev) => ({ ...prev, numero: e.target.value ?? "S/N" }));
+  };
 
   return (
     <FieldSet className="min-w-0">

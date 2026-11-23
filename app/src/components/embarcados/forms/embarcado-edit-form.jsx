@@ -84,9 +84,13 @@ export function EmbarcadoEditForm({ embarcado, refetchHandler }) {
       });
 
     try {
+      // Ensure endereco_mac and endereco are not changed by user but still
+      // include the original values expected by backend in the payload.
+      const { endereco_mac, ...informacoesSemMac } = informacoesGerais;
       const fields = {
-        ...informacoesGerais,
-        endereco,
+        ...informacoesSemMac,
+        endereco: embarcado.endereco ?? undefined,
+        endereco_mac: embarcado.endereco_mac,
         componentes: Object.fromEntries(componentesMap),
       };
       const response = await fetch(

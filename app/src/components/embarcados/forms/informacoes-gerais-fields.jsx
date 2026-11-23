@@ -27,7 +27,11 @@ export function InformacoesGeraisFields({ fields, handler, editing }) {
     handler((prev) => ({ ...prev, modelo: e.target.value }));
   };
 
+  // When editing an existing embarcado we must not allow changing the
+  // endereco_mac. Keep the handler no-op in that case to avoid accidental
+  // updates. For creation (editing === false) the field remains editable.
   const handleEnderecoMacChange = (e) => {
+    if (editing) return;
     const value = String(e.target.value).toUpperCase();
     if (value !== "" && !/^[0-9A-F:]+$/.test(value)) return;
 

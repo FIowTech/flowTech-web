@@ -27,9 +27,18 @@ async function getObject(key) {
             }),
         );
 
-        // O Body vem como stream, transformamos em string e depois em json
+        // O Body vem como stream. Os arquivos GOLD atuais são JSONL; tenta-se
+        // primeiro JSON convencional para manter compatibilidade com objetos antigos.
         const str = await response.Body.transformToString();
-        return JSON.parse(str)
+        try {
+            return JSON.parse(str);
+        } catch (error) {
+            if (!(error instanceof SyntaxError)) throw error;
+            return str
+                .split(/\r?\n/)
+                .filter((linha) => linha.trim())
+                .map((linha) => JSON.parse(linha));
+        }
     } catch (caught) {
         // Validações da documentação da aws sdk
         if (caught instanceof NoSuchKey) {
