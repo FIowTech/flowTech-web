@@ -82,6 +82,7 @@ export function GraficoLinha({ labels, linhas, unidade, max, area, limiteMax = n
     backgroundColor: linha.cor + "99", 
     fill: area,
     tension: 0.4, 
+    spanGaps: false,
     pointRadius: 3,        
     pointHoverRadius: 5, 
   }));

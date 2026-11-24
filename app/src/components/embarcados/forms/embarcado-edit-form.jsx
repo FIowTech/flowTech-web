@@ -60,7 +60,12 @@ export function EmbarcadoEditForm({ embarcado, refetchHandler }) {
   const [endereco, setEndereco] = useState(embarcado.endereco ?? {});
 
   const [componentesMonitorados, setComponentesMonitorados] = useState(
-    embarcado.parametros,
+    () =>
+      (embarcado.parametros ?? []).map((componente) => ({
+        ...componente,
+        limite_max: componente.limite_max === 0 ? null : componente.limite_max,
+        limite_min: componente.limite_min === 0 ? null : componente.limite_min,
+      })),
   );
 
   const isInformacoesGeraisValid = true;
@@ -76,21 +81,17 @@ export function EmbarcadoEditForm({ embarcado, refetchHandler }) {
     if (!isFormValid) return;
 
     setIsSendingForm(true);
-    const componentesMap = new Map();
-    componentesMonitorados
-      .filter((c) => c.status === 1)
-      .forEach((c) => {
-        componentesMap.set(c.nome, c);
-      });
+    const componentesMap = new Map(
+      componentesMonitorados.map((componente) => [
+        componente.nome,
+        componente,
+      ]),
+    );
 
     try {
-      // Ensure endereco_mac and endereco are not changed by user but still
-      // include the original values expected by backend in the payload.
-      const { endereco_mac, ...informacoesSemMac } = informacoesGerais;
       const fields = {
-        ...informacoesSemMac,
-        endereco: embarcado.endereco ?? undefined,
-        endereco_mac: embarcado.endereco_mac,
+        apelido: informacoesGerais.apelido,
+        modelo: informacoesGerais.modelo,
         componentes: Object.fromEntries(componentesMap),
       };
       const response = await fetch(

@@ -27,9 +27,31 @@ function formatarFrequencia(metrica) {
   return `${valor}${maximo}`;
 }
 
-function CartaoKpi({ titulo, children, className = "" }) {
+function normalizarSituacao(situacao) {
+  return String(situacao ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function piorSituacao(...situacoes) {
+  const niveis = situacoes.map(normalizarSituacao);
+  if (niveis.includes("critico")) return "critico";
+  if (niveis.includes("alerta") || niveis.includes("atencao")) return "alerta";
+  return null;
+}
+
+function CartaoKpi({ titulo, children, className = "", situacao }) {
+  const nivel = normalizarSituacao(situacao);
+  const classeBorda =
+    nivel === "critico"
+      ? "border-red-500"
+      : nivel === "alerta" || nivel === "atencao"
+        ? "border-amber-500"
+        : "border-border";
+
   return (
-    <div className={`rounded-lg border border-border bg-card p-4 ${className}`}>
+    <div className={`rounded-lg border ${classeBorda} bg-card p-4 ${className}`}>
       <h3 className="mb-1 text-sm font-medium text-muted-foreground">{titulo}</h3>
       {children}
     </div>
@@ -72,7 +94,11 @@ export default function ModalDetalhesEmbarcado({
       return (
         <div className="space-y-5">
           <div className="grid gap-3 md:grid-cols-12">
-            <CartaoKpi titulo="Uso atual" className="md:col-span-3">
+            <CartaoKpi
+              titulo="Uso atual"
+              className="md:col-span-3"
+              situacao={cpu?.metricas?.uso?.situacao}
+            >
               <p className="text-3xl font-bold">
                 {formatarValor(
                   metrica.linhas[0]?.atual ?? ultimoValor(metrica.linhas[0]?.valores),
@@ -82,7 +108,11 @@ export default function ModalDetalhesEmbarcado({
                 </span>
               </p>
             </CartaoKpi>
-            <CartaoKpi titulo="Frequência do processador" className="md:col-span-5">
+            <CartaoKpi
+              titulo="Frequência do processador"
+              className="md:col-span-5"
+              situacao={frequenciaMetrica?.situacao}
+            >
               <p className="text-xl font-bold">{formatarValor(frequencia)}</p>
             </CartaoKpi>
             <CartaoKpi
@@ -142,6 +172,7 @@ export default function ModalDetalhesEmbarcado({
         <div className="grid gap-4 md:grid-cols-2">
           <CartaoKpi
             titulo={usoRam ? "Memória RAM principal" : "Memória RAM principal (indisponível)"}
+            situacao={usoRam?.situacao}
           >
             <p className="text-2xl font-bold">
               {formatarValor(memoriaPrincipal)}
@@ -150,7 +181,7 @@ export default function ModalDetalhesEmbarcado({
               {percentual}
             </span>
           </CartaoKpi>
-          <CartaoKpi titulo="Memória Swap">
+          <CartaoKpi titulo="Memória Swap" situacao={swap?.situacao}>
             <p className="text-2xl font-bold">
               {swap
                 ? `${formatarComUnidade(swap.valor, swap.unidade_medida)} / ${formatarComUnidade(swap.total, swap.unidade_medida)}`
@@ -177,11 +208,11 @@ export default function ModalDetalhesEmbarcado({
       const armazenamento = disco
         ? `${formatarComUnidade(disco.valor, disco.unidade_medida)} / ${formatarComUnidade(disco.total, disco.unidade_medida)}`
         : "—";
-      const uso = disco?.valor_pct ?? 0;
+      const uso = disco?.valor_pct;
 
       return (
         <div className="grid gap-4">
-          <CartaoKpi titulo="Armazenamento Raiz (/)">
+          <CartaoKpi titulo="Armazenamento Raiz (/)" situacao={disco?.situacao}>
             <p className="text-2xl font-bold">{formatarValor(armazenamento)}</p>
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div
@@ -190,7 +221,9 @@ export default function ModalDetalhesEmbarcado({
               />
             </div>
             <span className="mt-2 block text-xs text-muted-foreground">
-              {formatarComUnidade(uso, "%")} do espaço total utilizado
+              {uso != null
+                ? `${formatarComUnidade(uso, "%")} do espaço total utilizado`
+                : "Sem leitura de utilização"}
             </span>
           </CartaoKpi>
         </div>
@@ -202,37 +235,45 @@ export default function ModalDetalhesEmbarcado({
     const pacotesPerdidos = rede?.pacotes?.perdidos;
     const download = rede?.metricas?.download;
     const upload = rede?.metricas?.upload;
+    const possuiLeituraPacotes = [
+      pacotesPerdidos?.chegando,
+      pacotesPerdidos?.saindo,
+      pacotesPerdidos?.total,
+    ].some((valor) => valor != null);
 
     return (
       <div className="grid gap-4 md:grid-cols-2">
-        <CartaoKpi titulo="Taxas de Transferência">
+        <CartaoKpi
+          titulo="Taxas de Transferência"
+          situacao={piorSituacao(download?.situacao, upload?.situacao)}
+        >
           <p className="text-xl font-bold">
-            {download
+            {download?.valor != null
               ? formatarComUnidade(download.valor, download.unidade_medida)
-              : "—"}{" "}
+              : "Sem leitura"}{" "}
             <span className="text-xs font-normal text-muted-foreground">Download</span>
           </p>
           <p className="mt-2 text-xl font-bold">
-            {upload
+            {upload?.valor != null
               ? formatarComUnidade(upload.valor, upload.unidade_medida)
-              : "—"}{" "}
+              : "Sem leitura"}{" "}
             <span className="text-xs font-normal text-muted-foreground">Upload</span>
           </p>
         </CartaoKpi>
-        <CartaoKpi titulo="Qualidade de Conexão">
+        <CartaoKpi titulo="Qualidade de Conexão" situacao={latencia?.situacao}>
           <p className="text-lg font-semibold">
             Latência (Ping):{" "}
             <span className="font-mono">
-              {latencia
+              {latencia?.valor != null
                 ? formatarComUnidade(latencia.valor, latencia.unidade_medida)
-                : "—"}
+                : "Sem leitura"}
             </span>
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             Perda de pacotes (Drop in/out):{" "}
-            {pacotesPerdidos
-              ? `${pacotesPerdidos.chegando} / ${pacotesPerdidos.saindo} (total: ${pacotesPerdidos.total})`
-              : "—"}
+            {possuiLeituraPacotes
+              ? `${formatarValor(pacotesPerdidos.chegando)} / ${formatarValor(pacotesPerdidos.saindo)} (total: ${formatarValor(pacotesPerdidos.total)})`
+              : "Sem leitura"}
           </p>
         </CartaoKpi>
       </div>

@@ -163,8 +163,97 @@ function montarSnapshot(snapshot) {
 // ---------- consultas ----------
 
 function normalizarSnapshots(dados) {
-  if (Array.isArray(dados)) return dados;
-  return dados && typeof dados === "object" ? [dados] : [];
+  const snapshots = Array.isArray(dados)
+    ? dados
+    : dados && typeof dados === "object"
+      ? [dados]
+      : [];
+
+  return snapshots.map(normalizarSnapshot);
+}
+
+function situacaoPorLimites(valor, metrica) {
+  const limiteMin = Number(metrica.limite_min);
+  const limiteMax = Number(metrica.limite_max);
+
+  if (limiteMin > 0 && valor <= limiteMin) return "Crítico";
+  if (limiteMax > 0) {
+    if (valor >= limiteMax) return "Crítico";
+    if (valor >= 0.7 * limiteMax) return "Alerta";
+  }
+  return "Normal";
+}
+
+function normalizarSnapshot(snapshot) {
+  if (!snapshot?.componentes || typeof snapshot.componentes !== "object") {
+    return snapshot;
+  }
+
+  const componentes = { ...snapshot.componentes };
+
+  for (const grupo of ["ram", "swap", "disco"]) {
+    const componente = componentes[grupo];
+    const uso = componente?.metricas?.uso;
+    if (
+      !uso ||
+      typeof uso.valor !== "number" ||
+      typeof uso.total !== "number" ||
+      uso.total <= 0
+    ) {
+      continue;
+    }
+
+    const percentualAusente =
+      uso.valor_pct == null || (uso.valor_pct === 0 && uso.valor > 0);
+    if (!percentualAusente) continue;
+
+    const valorPct = (uso.valor / uso.total) * 100;
+    if (!Number.isFinite(valorPct) || valorPct > 100) continue;
+
+    const situacao = situacaoPorLimites(valorPct, uso);
+    componentes[grupo] = {
+      ...componente,
+      situacao,
+      metricas: {
+        ...componente.metricas,
+        uso: { ...uso, valor_pct: valorPct, situacao },
+      },
+    };
+  }
+
+  const rede = componentes.rede;
+  if (rede?.metricas) {
+    const metricas = { ...rede.metricas };
+    for (const nome of ["download", "upload", "latencia"]) {
+      if (metricas[nome]?.valor === 0) {
+        metricas[nome] = {
+          ...metricas[nome],
+          valor: null,
+          situacao: "Normal",
+        };
+      }
+    }
+
+    const pacotes = rede.pacotes
+      ? Object.fromEntries(
+          Object.entries(rede.pacotes).map(([nome, dados]) => [
+            nome,
+            dados && typeof dados === "object"
+              ? Object.fromEntries(
+                  Object.entries(dados).map(([campo, valor]) => [
+                    campo,
+                    valor === 0 ? null : valor,
+                  ]),
+                )
+              : dados,
+          ]),
+        )
+      : rede.pacotes;
+
+    componentes.rede = { ...rede, metricas, pacotes };
+  }
+
+  return { ...snapshot, componentes };
 }
 
 // Lê os snapshots JSONL do MAC nas partições horárias solicitadas.

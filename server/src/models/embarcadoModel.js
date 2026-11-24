@@ -18,9 +18,19 @@ async function buscar(empresaId) {
 
     const resultParametros = await database.executar(
       `
-      SELECT c.id_componente, c.nome, c.descricao, p.status, p.limite_max, p.limite_min FROM parametro p 
-      JOIN componente c ON p.componente_id = c.id_componente 
-      WHERE embarcado_id = ? AND empresa_id = ?`,
+      SELECT
+        c.id_componente,
+        c.nome,
+        c.descricao,
+        c.unidade_medida,
+        COALESCE(p.status, 0) AS status,
+        p.limite_max,
+        p.limite_min
+      FROM componente c
+      LEFT JOIN parametro p
+        ON p.componente_id = c.id_componente
+        AND p.embarcado_id = ?
+        AND p.empresa_id = ?`,
       [embarcado.id_embarcado, empresaId],
     );
 
@@ -152,6 +162,28 @@ async function editar(empresaId, idEmbarcado, campos = {}) {
       if (listaComponentes.length > 0) {
         for (const valor of listaComponentes) {
           const { id_componente, limite_max, limite_min, status } = valor;
+
+          const [parametrosExistentes] = await conn.execute(
+            "SELECT 1 FROM parametro WHERE empresa_id = ? AND embarcado_id = ? AND componente_id = ? LIMIT 1",
+            [empresaId, idEmbarcado, id_componente],
+          );
+
+          if (parametrosExistentes.length === 0) {
+            if (status !== 1) continue;
+
+            await conn.execute(
+              "INSERT INTO parametro (embarcado_id, empresa_id, status, componente_id, limite_max, limite_min) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                idEmbarcado,
+                empresaId,
+                status,
+                id_componente,
+                limite_max ?? null,
+                limite_min ?? null,
+              ],
+            );
+            continue;
+          }
 
           const parametrosParaAtualizar = {};
           if (limite_max !== undefined)

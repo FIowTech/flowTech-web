@@ -21,6 +21,12 @@ function valorMetrica(metrica, percentual = true) {
   return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
+function limitePositivo(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) && numero > 0 ? numero : null;
+}
+
 function criarMetricaReal(componente, serie, limitesPadrao) {
   const leituras = serie?.leituras ?? [];
   if (!leituras.length) return null;
@@ -48,7 +54,7 @@ function criarMetricaReal(componente, serie, limitesPadrao) {
           leitura.componentes?.[definicao.grupo]?.metricas?.[definicao.chave],
           definicao.percentual,
         ),
-      );
+      ).map((valor) => (componente === "rede" && valor === 0 ? null : valor));
       const atual = [...valores].reverse().find((valor) => valor !== null);
       const metricaAtual =
         leituras.at(-1)?.componentes?.[definicao.grupo]?.metricas?.[definicao.chave];
@@ -92,57 +98,30 @@ function criarMetricaReal(componente, serie, limitesPadrao) {
         ? `Média percentual das ${numerosValidos.length} leituras recentes`
         : undefined,
     limiteMax:
-      principal.limiteMax ?? limitesPadrao.limiteMax ?? (unidade === "%" ? 100 : undefined),
-    limiteMin: principal.limiteMin ?? limitesPadrao.limiteMin,
+      limitePositivo(limitesPadrao.limiteMax) ??
+      limitePositivo(principal.limiteMax) ??
+      limitePositivo(limitesPadrao.limiteMaxPadrao) ??
+      (unidade === "%" ? 100 : undefined),
+    limiteMin:
+      limitePositivo(limitesPadrao.limiteMin) ??
+      limitePositivo(principal.limiteMin),
     unidade,
     max: unidade === "%" ? 100 : undefined,
   };
 }
 
-function criarMetricaMock(componente, metricas) {
-  if (componente === "cpu") {
-    return {
-      labels: metricas.horarios,
-      linhas: [{ nome: "Uso de CPU", valores: metricas.cpu.valores, cor: CORES.verde }],
-      atual: metricas.cpu.atual,
-      unidade: "%",
-      max: 100,
-    };
-  }
-  if (componente === "ram") {
-    return {
-      labels: metricas.horarios,
-      linhas: [{ nome: "Uso de RAM", valores: metricas.ram.valores, cor: CORES.amarelo }],
-      atual: metricas.ram.atual,
-      unidade: "GiB",
-      max: 120,
-    };
-  }
-  if (componente === "rede") {
-    return {
-      labels: metricas.horarios,
-      linhas: [
-        { nome: "Download", valores: metricas.rede.download, cor: CORES.verde },
-        { nome: "Upload", valores: metricas.rede.upload, cor: CORES.cinza },
-      ],
-      atual: metricas.rede.atual,
-      unidade: "Mbps",
-    };
-  }
-
-  const usado = metricas.disco.usado;
-  const media = usado.reduce((soma, valor) => soma + valor, 0) / usado.length;
+function criarMetricaSemDados(componente) {
+  const unidade = componente === "rede" ? "Mbps" : "%";
   return {
-    labels: metricas.disco.dias,
-    linhas: [{ nome: "Disco usado", valores: usado, cor: CORES.verde }],
-    atual: `${media.toFixed(1)} GB`,
-    descricao: "Média de espaço usado no período",
-    unidade: "GB",
-    max: metricas.disco.capacidade,
+    labels: [],
+    linhas: [],
+    atual: "Sem dados reais",
+    unidade,
+    max: unidade === "%" ? 100 : undefined,
   };
 }
 
-export default function MetricasEmbarcado({ servidor, metricasMock, obterLimites }) {
+export default function MetricasEmbarcado({ servidor, obterLimites }) {
   const token = useAuth((state) => state.token);
   const [series, setSeries] = useState({});
   const [modalAberto, setModalAberto] = useState(false);
@@ -173,7 +152,7 @@ export default function MetricasEmbarcado({ servidor, metricasMock, obterLimites
           } catch (error) {
             if (!controller.signal.aborted) {
               console.warn(
-                `[MetricasEmbarcado] Usando dados simulados para ${componente} do embarcado ${servidor.id_embarcado}:`,
+                `[MetricasEmbarcado] Falha ao buscar dados reais de ${componente} do embarcado ${servidor.id_embarcado}:`,
                 error.message || error,
               );
               resultado[componente] = null;
@@ -200,7 +179,7 @@ export default function MetricasEmbarcado({ servidor, metricasMock, obterLimites
         series[componente],
         obterLimites(servidor, componente, componente === "cpu" ? 90 : componente === "ram" ? 80 : 4500),
       );
-      return [componente, real ?? criarMetricaMock(componente, metricasMock)];
+      return [componente, real ?? criarMetricaSemDados(componente)];
     }),
   );
 

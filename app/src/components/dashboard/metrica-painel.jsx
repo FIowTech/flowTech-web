@@ -15,7 +15,7 @@ export function MetricaPainel({
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-3">
-        <div className="flex flex-col">
+        <div className="flex h-16 shrink-0 flex-col">
           <span className="text-2xl font-bold">{valor}</span>
           {descricao && (
             <span className="text-xs text-muted-foreground">{descricao}</span>

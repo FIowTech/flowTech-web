@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
-import { useMetricasMock } from "@/hooks/useMetricasMock";
 import {
   ArrowsCounterClockwiseIcon,
   CaretDownIcon,
@@ -33,8 +32,9 @@ function obterLimites(servidor, componente, limiteMaxPadrao) {
     limiteMax:
       parametro?.limite_max ??
       servidor[`limite_max_${componente}`] ??
-      limiteMaxPadrao,
+      null,
     limiteMin: parametro?.limite_min ?? null,
+    limiteMaxPadrao,
   };
 }
 
@@ -49,8 +49,6 @@ export default function EmbarcadosPage() {
     isLoading: isLoadingEmbarcados,
     refetch,
   } = useFetchEmbarcados();
-  const metricas = useMetricasMock();
-
   const [busca, setBusca] = useState("");
   const [expandidoId, setExpandidoId] = useState(idUrl);
   const [abaDetalhe, setAbaDetalhe] = useState("processos");
@@ -253,7 +251,6 @@ export default function EmbarcadosPage() {
                         <MetricasEmbarcado
                           key={servidor.id_embarcado}
                           servidor={servidor}
-                          metricasMock={metricas}
                           obterLimites={obterLimites}
                         />
                       ) : (

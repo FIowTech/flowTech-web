@@ -108,8 +108,12 @@ function ComponenteCard({ componente, handler }) {
                 type="number"
                 className="text-xs rounded-md"
                 min={limite_min ?? undefined}
-                value={limite_max}
-                onChange={(e) => onChangeMaxLimit(Number(e.target.value))}
+                value={limite_max ?? ""}
+                onChange={(e) =>
+                  onChangeMaxLimit(
+                    e.target.value === "" ? null : Number(e.target.value),
+                  )
+                }
               />
             </Field>
             <Field>
@@ -118,8 +122,12 @@ function ComponenteCard({ componente, handler }) {
                 type="number"
                 className="text-xs rounded-md"
                 max={limite_max ?? undefined}
-                value={limite_min}
-                onChange={(e) => onChangeMinLimit(Number(e.target.value))}
+                value={limite_min ?? ""}
+                onChange={(e) =>
+                  onChangeMinLimit(
+                    e.target.value === "" ? null : Number(e.target.value),
+                  )
+                }
               />
             </Field>
           </FieldGroup>

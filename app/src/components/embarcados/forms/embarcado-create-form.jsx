@@ -51,8 +51,8 @@ export function EmbarcadoCreateForm({ refetchHandler }) {
         componentes.map((c) => ({
           ...c,
           status: 0,
-          limite_max: 0.0,
-          limite_min: 0.0,
+          limite_max: null,
+          limite_min: null,
         })),
       );
     };

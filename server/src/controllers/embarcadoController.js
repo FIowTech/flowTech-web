@@ -170,7 +170,7 @@ async function cadastrar(req, res) {
 async function editar(req, res) {
   const { empresa_id, nivel_acesso } = req.usuario;
   const { embarcadoId } = req.params;
-  const { apelido, modelo, componentes, endereco } = req.body;
+  const { apelido, modelo, componentes } = req.body;
 
   const camposParaAtualizar = {};
 
@@ -214,15 +214,6 @@ async function editar(req, res) {
     if (!isMissing(modelo)) camposParaAtualizar.modelo = modelo;
     if (!isMissing(componentes) && Object.keys(componentes).length > 0)
       camposParaAtualizar.componentes = componentes;
-    if (!isMissing(endereco)) {
-      const errosEndereco = enderecoErrors(endereco, "embarcado");
-      if (errosEndereco.length !== 0) {
-        return res.status(400).json({
-          message: `O campo 'endereco' possui os seguintes campos inválidos e/ou faltando: ${errosEndereco.join(", ")}.`,
-        });
-      }
-      camposParaAtualizar.endereco = endereco;
-    }
 
     const response = await embarcadoModel.editar(
       empresa_id,
