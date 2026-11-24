@@ -85,9 +85,28 @@ async function getMostRecentObject(prefix) {
     );
 };
 
+// Ler arquivos JSONL (JSON Lines) do S3
+async function getJsonLines(key) {
+    const response = await client.send(
+        new GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME_ETL,
+            Key: key,
+        }),
+    );
+
+    const conteudo = await response.Body.transformToString();
+
+    return conteudo
+        .split(/\r?\n/)
+        .filter((linha) => linha.trim() !== "")
+        .map((linha) => JSON.parse(linha));
+}
+
+
 module.exports = {
     getUrlS3,
     getObject,
     getMostRecentObject,
-    listObjects
+    listObjects,
+    getJsonLines
 }

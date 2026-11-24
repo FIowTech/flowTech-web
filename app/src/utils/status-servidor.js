@@ -1,5 +1,9 @@
 export function pegarStatusServidor(servidor) {
-  if (servidor.status === 0) return "critico";
-  if (servidor.status === 2) return "alerta";
+  const status = servidor.status;
+
+  if (status === "critico") return "critico";
+  if (status === "alerta") return "alerta";
+  if (status === "sem_dados" || status == null) return "sem_dados";
+
   return "controlado";
 }

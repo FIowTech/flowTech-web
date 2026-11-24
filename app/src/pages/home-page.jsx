@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
-import { useMetricasMock } from "@/hooks/useMetricasMock";
 import { useAuth } from "@/store/auth-store";
 import {
   listarRegioes,
@@ -26,7 +25,6 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
 // Variáveis mockadas e temporárias
-const tempAtualizadoEm = "16:15";
 
 const cores = {
   verde: "#36c876",
@@ -36,15 +34,26 @@ const cores = {
 
 const filtrosIniciais = { regiao: TODAS_AS_REGIOES, status: [] };
 
-const tempResumoAlertas = { amarelo: 2, vermelho: 3, total: 5 };
-const tempResumoCapturas = { recebidas: 42, esperadas: 42, porticos: 6 };
 
 export default function HomePage() {
   const usuario = useAuth((state) => state.usuario);
   const { empresa } = useFetchEmpresa();
-  const { embarcados, isLoading } = useFetchEmbarcados();
-  // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
-  const metricas = useMetricasMock();
+  const { embarcados, resumo, isLoading } = useFetchEmbarcados();
+  const totalControlado = embarcados.filter(
+  (e) => pegarStatusServidor(e) === "controlado"
+).length;
+
+const totalAlerta = embarcados.filter(
+  (e) => pegarStatusServidor(e) === "alerta"
+).length;
+
+const totalCritico = embarcados.filter(
+  (e) => pegarStatusServidor(e) === "critico"
+).length;
+
+const totalSemDados = embarcados.filter(
+  (e) => pegarStatusServidor(e) === "sem_dados"
+).length;
 
 
   const [searchParams] = useSearchParams();
@@ -61,15 +70,66 @@ export default function HomePage() {
 
   const regioes = useMemo(() => listarRegioes(embarcados), [embarcados]);
 
+  // Contagens reais (mesma regra do mapa, então os números sempre batem com as cores)
+const contar = (status) =>
+  embarcados.filter((s) => pegarStatusServidor(s) === status).length;
+const totalVerde = contar("controlado");
+const totalAmarelo = contar("alerta");
+const totalVermelho = contar("critico");
+
+// Região com mais servidores críticos (desempate: mais em alerta)
+
+const regiaoCritica = useMemo(() => {
+  const porRegiao = new Map();
+
+  for (const servidor of embarcados) {
+    const nome = pegarRegiao(servidor);
+
+    // Ignora embarcados sem região cadastrada
+    if (!nome) continue;
+
+    const regiao = porRegiao.get(nome) ?? {
+      nome,
+      amarelo: 0,
+      vermelho: 0,
+      total: 0,
+    };
+
+    regiao.total++;
+
+    const status = pegarStatusServidor(servidor);
+
+    if (status === "alerta") {
+      regiao.amarelo++;
+    }
+
+    if (status === "critico") {
+      regiao.vermelho++;
+    }
+
+    porRegiao.set(nome, regiao);
+  }
+
+  return (
+    [...porRegiao.values()]
+      .filter((regiao) => regiao.amarelo + regiao.vermelho > 0)
+      .sort(
+        (a, b) =>
+          b.vermelho - a.vermelho ||
+          b.amarelo - a.amarelo
+      )[0] ?? null
+  );
+}, [embarcados]);
+
+
+const atualizadoEm = resumo?.atualizado_em
+  ? new Date(resumo.atualizado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  : "—";
+const capturas = resumo?.capturas ?? { recebidas: 0, esperadas: 0, porticos: 0 };
+
   const filtrosAtivos =
     (filtros.regiao !== TODAS_AS_REGIOES ? 1 : 0) + filtros.status.length;
 
-  // média do disco: soma tudo e divide pela quantidade de dias
-  let somaDisco = 0;
-  for (const valor of metricas.disco.usado) {
-    somaDisco += valor;
-  }
-  const mediaDisco = (somaDisco / metricas.disco.usado.length).toFixed(1);
 
   const servidoresFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -105,10 +165,7 @@ export default function HomePage() {
   // const totalVerde = embarcados.filter(
   //   (servidor) => servidor.status === 1,
   // ).length;
-  const totalVerde = 1;
-  const totalAmarelo = 2;
-  // const totalVermelho = embarcados.length - totalVerde;
-  const totalVermelho = 3;
+ 
 
   return (
     <div className="w-full flex flex-col space-y-6">
@@ -123,46 +180,46 @@ export default function HomePage() {
       </div>
 
       {/* resumo */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <ResumoCard
-          titulo="Situação Embarcados"
-          icon={HardDrivesIcon}
-          tom="warning"
-          atualizadoEm={tempAtualizadoEm}
-        >
-          <StatusCount status="verde" quantidade={totalVerde} />
-          <StatusCount status="amarelo" quantidade={totalAmarelo} />
-          <StatusCount status="vermelho" quantidade={totalVermelho} />
-          <ResumoTotal total={embarcados.length} />
-        </ResumoCard>
+<section className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-        <ResumoCard
-          titulo="Região mais crítica"
-          icon={BellIcon}
-          tom="destructive"
-          atualizadoEm={tempAtualizadoEm}
-        >
-          <StatusCount
-            status="amarelo"
-            quantidade={tempResumoAlertas.amarelo}
-          />
-          <StatusCount
-            status="vermelho"
-            quantidade={tempResumoAlertas.vermelho}
-          />
-          <ResumoTotal total={tempResumoAlertas.total} />
-        </ResumoCard>
+<ResumoCard
+  titulo="Situação dos embarcados"
+  icon={HardDrivesIcon}
+  atualizadoEm={atualizadoEm}
+>
+  <div className="flex flex-row flex-wrap items-center gap-4">
+    <StatusCount status="verde" quantidade={totalControlado} />
+    <StatusCount status="amarelo" quantidade={totalAlerta} />
+    <StatusCount status="vermelho" quantidade={totalCritico} />
+  </div>
 
-        {/* <ResumoCard
-          titulo="Capturas Recebidas/Esperadas"
-          icon={CameraIcon}
-          atualizadoEm={tempAtualizadoEm}
-        >
-          {tempResumoCapturas.recebidas} / {tempResumoCapturas.esperadas}
-          <span className="text-xs font-normal text-muted-foreground">
-            de {tempResumoCapturas.porticos} pórticos
-          </span>
-        </ResumoCard> */}
+  <p className="mt-2 text-xs text-muted-foreground">
+    {totalSemDados} sem dados
+  </p>
+
+  <ResumoTotal total={embarcados.length} />
+</ResumoCard>
+<ResumoCard
+  titulo="Região mais crítica"
+  icon={BellIcon}
+  tom="destructive"
+  atualizadoEm={atualizadoEm}
+>
+
+  <div className="mt-2">
+    <p className="text-lg font-semibold">
+      {regiaoCritica?.nome ?? "Nenhuma região crítica"}
+    </p>
+
+    <p className="text-xs text-muted-foreground">
+      {regiaoCritica
+        ? `${regiaoCritica.total} embarcados na região`
+        : "Nenhuma ocorrência de alerta ou criticidade"}
+    </p>
+  </div>
+</ResumoCard>
+
+
       </section>
 
       {/* busca + mapa + detalhes */}

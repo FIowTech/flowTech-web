@@ -10,6 +10,7 @@ import { useFetchProtectedResource } from "@/hooks/useFetchProtectedResource";
 // TODO: trocar quando a API passar a devolver CPU, RAM e disco do embarcado
 const tempSistema = { cpu: "24 físicos", ram: "128 GiB", disco: "8 TB" };
 
+
 export function ServidorDetalhes({ servidor }) {
   const navigate = useNavigate();
 
@@ -23,9 +24,9 @@ export function ServidorDetalhes({ servidor }) {
     );
   }
 
-  const endereco = servidor.endereco ?? {};
-  // CPU, RAM e disco ainda não existem na API: usa o mock até ela devolver
-  const sistema = servidor.sistema ?? tempSistema;
+    const endereco = servidor.endereco ?? {};
+      const sistema = servidor.sistema ?? tempSistema;
+
 
   // Leva para a página do servidor (rota /embarcados/:id)
   const handleVerDashboardClick = () => {
@@ -125,5 +126,47 @@ function Valor({ children }) {
     >
       {children}
     </Badge>
+  );
+}
+function formatarLeitura(texto) {
+  if (!texto) return null;
+  const [data, hora] = texto.split(" "); // "2026-11-14 20:09:14"
+  return data.split("-").reverse().join("/") + " " + (hora ?? "");
+}
+
+function DadosGold({ id }) {
+  const { resource: gold } = useFetchProtectedResource(`gold/embarcados/${id}`);
+  const sis = gold?.sistema;
+
+  const uso = (grupo, nome) => {
+    const valor = gold?.componentes?.[grupo]?.parametros?.find((p) => p.nome === nome)?.valor;
+    return valor == null ? null : `${Number(valor).toFixed(1)}%`;
+  };
+  const discoTotal =
+    sis?.disco_total_gb == null ? null
+    : sis.disco_total_gb >= 1000 ? `${(sis.disco_total_gb / 1000).toFixed(1)} TB`
+    : `${sis.disco_total_gb.toFixed(0)} GB`;
+
+  return (
+    <>
+      <Secao titulo="Especificações de Sistema">
+          <Linha label="CPU - Núcleos:" valor={sistema.cpu} />
+          <Linha label="RAM:" valor={sistema.ram} />
+          <Linha label="Disco:" valor={sistema.disco} />
+        </Secao>
+
+      <Secao titulo="Informação de Conexão">
+        <Linha label="IP:" valor={gold?.ip} />
+        <Linha label="Última leitura:" valor={formatarLeitura(gold?.ultima_leitura)} />
+        <Linha label="Chegou ao S3:" valor={gold?.ultimo_arquivo_em && new Date(gold.ultimo_arquivo_em).toLocaleString("pt-BR")} />
+      </Secao>
+
+      <Secao titulo="Resumo de Recursos">
+        <Linha label="CPU:" valor={uso("cpu", "cpu_uso_pct")} />
+        <Linha label="RAM:" valor={uso("ram", "ram_uso_pct")} />
+        <Linha label="Disco:" valor={uso("disco", "disco_uso_pct")} />
+        <Linha label="Alertas ativos:" valor={gold && String(gold.alertas.length)} />
+      </Secao>
+    </>
   );
 }

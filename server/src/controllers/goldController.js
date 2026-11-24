@@ -42,8 +42,7 @@ async function snapshot(req, res) {
     const embarcado = await carregarEmbarcado(req, res);
     if (!embarcado) return;
 
-    const result = await gold.ultimoSnapshot(embarcado.endereco_mac);
-
+const result = await gold.ultimoSnapshot(req.usuario.empresa_id, embarcado.id_embarcado);
     res.status(200).json({
       message:
         result.nivel === "sem_dados"
@@ -70,10 +69,9 @@ async function serie(req, res) {
     const embarcado = await carregarEmbarcado(req, res);
     if (!embarcado) return;
 
-    const result = await gold.serie(embarcado.endereco_mac, componente, {
-      horas: inteiroEntre(req.query.horas, undefined, 1, 24),
-      maxPontos: inteiroEntre(req.query.pontos, 30, 1, 200),
-    });
+   const result = await gold.serie(req.usuario.empresa_id, embarcado.id_embarcado, componente, {
+  maxPontos: inteiroEntre(req.query.pontos, 30, 1, 200),
+});
 
     res.status(200).json({ message: "Série encontrada.", result });
   } catch (error) {
@@ -87,31 +85,7 @@ async function resumo(req, res) {
 
   try {
     const { data: embarcados } = await embarcadoModel.buscar(empresa_id);
-
-    const servidores = await gold.mapaComLimite(embarcados, 4, async (embarcado) => {
-      try {
-        const s = await gold.ultimoSnapshot(embarcado.endereco_mac);
-        return {
-          id_embarcado: embarcado.id_embarcado,
-          status: s.status,
-          nivel: s.nivel,
-          ultima_leitura: s.ultima_leitura,
-          alertas: s.alertas,
-        };
-      } catch (error) {
-        console.error(
-          `[goldController] resumo falhou para embarcado ${embarcado.id_embarcado}:`,
-          error.message,
-        );
-        return {
-          id_embarcado: embarcado.id_embarcado,
-          status: null,
-          nivel: "sem_dados",
-          ultima_leitura: null,
-          alertas: [],
-        };
-      }
-    });
+    const servidores = await gold.resumoEmpresa(empresa_id, embarcados);
 
     const contar = (nivel) => servidores.filter((s) => s.nivel === nivel).length;
     const todosAlertas = servidores.flatMap((s) => s.alertas);
@@ -126,6 +100,11 @@ async function resumo(req, res) {
           critico: contar("critico"),
           sem_dados: contar("sem_dados"),
           total: servidores.length,
+        },
+        capturas: {
+          recebidas: servidores.filter((s) => s.recente).length,
+          esperadas: servidores.length,
+          porticos: servidores.length,
         },
         alertas: {
           amarelo: todosAlertas.filter((a) => a.nivel === "alerta").length,
