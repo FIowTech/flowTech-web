@@ -42,7 +42,7 @@ async function snapshot(req, res) {
     const embarcado = await carregarEmbarcado(req, res);
     if (!embarcado) return;
 
-const result = await gold.ultimoSnapshot(req.usuario.empresa_id, embarcado.id_embarcado);
+    const result = await gold.ultimoSnapshot(embarcado.endereco_mac);
     res.status(200).json({
       message:
         result.nivel === "sem_dados"
@@ -69,9 +69,14 @@ async function serie(req, res) {
     const embarcado = await carregarEmbarcado(req, res);
     if (!embarcado) return;
 
-   const result = await gold.serie(req.usuario.empresa_id, embarcado.id_embarcado, componente, {
-  maxPontos: inteiroEntre(req.query.pontos, 30, 1, 200),
-});
+    const result = await gold.serie(
+      embarcado.endereco_mac,
+      componente,
+      {
+        horas: inteiroEntre(req.query.horas, 3, 1, 168),
+        maxPontos: inteiroEntre(req.query.pontos, 30, 1, 200),
+      },
+    );
 
     res.status(200).json({ message: "Série encontrada.", result });
   } catch (error) {

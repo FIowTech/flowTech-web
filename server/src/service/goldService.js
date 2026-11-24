@@ -1,100 +1,68 @@
-
 "use strict";
 
 const s3 = require("./s3Service");
 
-// ---------- configurações ----------
-
 const COMPONENTES = ["cpu", "ram", "disco", "rede"];
 
-const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/").replace(/\/?$/, "/");
-
+const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/metricas/").replace(/\/?$/, "/");
 const HORAS_ATRAS = Number(process.env.GOLD_HORAS_ATRAS ?? 3);
-
 const TTL_MS = Number(process.env.GOLD_CACHE_SEGUNDOS ?? 15) * 1000;
-
-const JANELA_RECENTE_MS =
-  Number(process.env.GOLD_JANELA_CAPTURA_MIN ?? 60) * 60_000;
-
-const MAX_ARQUIVOS = Number(process.env.GOLD_MAX_ARQUIVOS ?? 100);
 
 class ErroValidacao extends Error {}
 
-// Padrão: assume o mesmo fuso deste servidor.
-// Se a ETL roda em outro fuso, defina GOLD_FUSO_ETL_HORAS.
-// Exemplo: 0 = UTC, -3 = Brasília.
+// Padrão: assume o mesmo fuso deste servidor. Se a ETL roda em outro fuso, defina GOLD_FUSO_ETL_HORAS (0 = UTC, -3 = Brasília).
 function fusoEtlHoras() {
   const definido = process.env.GOLD_FUSO_ETL_HORAS;
-
-  if (definido !== undefined && definido !== "") {
-    return Number(definido);
-  }
-
+  if (definido !== undefined && definido !== "") return Number(definido);
   return -new Date().getTimezoneOffset() / 60;
 }
 
-// O MAC no banco tem ":" e no S3 não.
+// O MAC no banco tem ":" ("5C:CD:5B:E5:3D:E1"); no S3 não ("5CCD5BE53DE1").
 function normalizarMac(mac) {
-  const limpo = String(mac ?? "")
-    .replace(/[:-]/g, "")
-    .toUpperCase();
-
+  const limpo = String(mac ?? "").replace(/[:-]/g, "").toUpperCase();
   if (!/^[0-9A-F]{12}$/.test(limpo)) {
     throw new ErroValidacao("Endereço MAC inválido.");
   }
-
   return limpo;
 }
 
 const doisDigitos = (n) => String(n).padStart(2, "0");
 
-// Um prefixo por hora, da hora atual para trás.
-function prefixosDasUltimasHoras(
-  mac,
-  componente,
-  { agora = new Date(), horas = HORAS_ATRAS } = {},
-) {
+// Um prefixo por hora, da hora atual para trás. Os JSONL agora guardam todos
+// os componentes juntos, então basta filtrar pelo MAC no nome do arquivo.
+function prefixosDasUltimasHoras(mac, { agora = new Date(), horas = HORAS_ATRAS } = {}) {
   const fuso = fusoEtlHoras();
   const prefixos = [];
 
   for (let atras = 0; atras < horas; atras++) {
-    const d = new Date(agora.getTime() + (fuso - atras) * 3_600_000);
-
+    // Converte a hora atual para o fuso da ETL e volta uma hora por iteração.
+    const d = new Date(agora.getTime() + fuso * 3_600_000 - atras * 3_600_000);
     prefixos.push(
-      `${PASTA_GOLD}ano=${d.getUTCFullYear()}/mes=${doisDigitos(
-        d.getUTCMonth() + 1,
-      )}` +
-        `/dia=${doisDigitos(d.getUTCDate())}/hora=${doisDigitos(
-          d.getUTCHours(),
-        )}` +
-        `/componente=${componente}/${mac}_`,
+      `${PASTA_GOLD}ano=${d.getUTCFullYear()}/mes=${doisDigitos(d.getUTCMonth() + 1)}` +
+        `/dia=${doisDigitos(d.getUTCDate())}/hora=${doisDigitos(d.getUTCHours())}` +
+        `/${mac}_`,
     );
   }
-
   return prefixos;
 }
 
-// ---------- cache ----------
+// ---------- cache (evita 1 ida ao S3 a cada refresh/polling do front) ----------
 
 const cache = new Map();
 
 function comCache(chave, fn) {
   const item = cache.get(chave);
+  if (item && item.expira > Date.now()) return item.promessa;
 
-  if (item && item.expira > Date.now()) {
-    return item.promessa;
+  if (cache.size > 1000) {
+    for (const [k, v] of cache) if (v.expira <= Date.now()) cache.delete(k);
   }
 
   const promessa = fn().catch((erro) => {
-    cache.delete(chave);
+    cache.delete(chave); // não guarda falhas
     throw erro;
   });
-
-  cache.set(chave, {
-    promessa,
-    expira: Date.now() + TTL_MS,
-  });
-
+  cache.set(chave, { promessa, expira: Date.now() + TTL_MS });
   return promessa;
 }
 
@@ -102,6 +70,7 @@ function limparCache() {
   cache.clear();
 }
 
+// Executa fn nos itens, no máximo `limite` ao mesmo tempo.
 async function mapaComLimite(lista, limite, fn) {
   const resultados = new Array(lista.length);
   let proximo = 0;
@@ -114,184 +83,68 @@ async function mapaComLimite(lista, limite, fn) {
   };
 
   await Promise.all(
-    Array.from(
-      { length: Math.min(limite, lista.length) },
-      trabalhador,
-    ),
+    Array.from({ length: Math.min(limite, lista.length) }, trabalhador),
   );
-
   return resultados;
-}
-
-// ---------- conversão de valores ----------
-
-const numero = (v) =>
-  v === null || v === undefined || Number.isNaN(Number(v))
-    ? null
-    : Number(v);
-
-// A Lambda grava 0.0 quando não há limite cadastrado.
-const limite = (v) => {
-  const n = numero(v);
-  return n && n > 0 ? n : null;
-};
-
-// ---------- conversão: formato da Lambda -> formato do front ----------
-
-function parametro(nome, metrica, { porcentagem = false } = {}) {
-  if (!metrica) return null;
-
-  return {
-    nome,
-    valor: numero(porcentagem ? metrica.valor_pct : metrica.valor),
-    situacao: metrica.situacao ?? null,
-    limite_min: limite(metrica.limite_min),
-    limite_max: limite(metrica.limite_max),
-  };
-}
-
-function converterComponentes(leitura) {
-  const c = leitura.componentes ?? {};
-
-  const grupos = {
-    cpu: [
-      parametro("cpu_uso_pct", c.cpu?.metricas?.uso),
-      parametro("cpu_freq_mhz", c.cpu?.metricas?.freq),
-    ],
-
-    ram: [
-      parametro("ram_uso_pct", c.ram?.metricas?.uso, {
-        porcentagem: true,
-      }),
-      parametro("swap_uso_pct", c.swap?.metricas?.uso, {
-        porcentagem: true,
-      }),
-    ],
-
-    disco: [
-      parametro("disco_uso_pct", c.disco?.metricas?.uso, {
-        porcentagem: true,
-      }),
-    ],
-
-    rede: [
-      parametro("download_mbps", c.rede?.metricas?.download),
-      parametro("upload_mbps", c.rede?.metricas?.upload),
-      parametro("latencia_ms", c.rede?.metricas?.latencia),
-    ],
-  };
-
-  const resultado = {};
-
-  for (const [grupo, parametros] of Object.entries(grupos)) {
-    const validos = parametros.filter(Boolean);
-
-    if (validos.length > 0) {
-      resultado[grupo] = {
-        nome: grupo,
-        endereco_mac: leitura.endereco_mac,
-        timestamp: leitura.timestamp,
-        parametros: validos,
-      };
-    }
-  }
-
-  return resultado;
-}
-
-function extrairSistema(leitura) {
-  const c = leitura.componentes ?? {};
-
-  return {
-    cpu_nucleos_fisicos: numero(c.cpu?.qtd_nucleos_fisicos),
-    cpu_nucleos_logicos: numero(c.cpu?.qtd_nucleos_logicos),
-    ram_total_gb: numero(c.ram?.metricas?.uso?.total),
-    swap_total_gb: numero(c.swap?.metricas?.uso?.total),
-    disco_total_gb: numero(c.disco?.metricas?.uso?.total),
-  };
 }
 
 // ---------- situação ----------
 
+// "Crítico" / "Alerta" / "Normal" (ou null, quando não há limite cadastrado) -> chave sem acento
 function nivelDe(situacao) {
   if (!situacao) return null;
-
   const nivel = String(situacao)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-
-  return ["critico", "alerta", "normal"].includes(nivel)
-    ? nivel
-    : null;
+  return ["critico", "alerta", "normal"].includes(nivel) ? nivel : null;
 }
 
-const PESO = {
-  critico: 3,
-  alerta: 2,
-  normal: 1,
-};
+const PESO = { critico: 3, alerta: 2, normal: 1 };
+// Mesma convenção que o front já usa em embarcados-page: 0 crítico | 1 ok | 2 atenção
+const STATUS_NUMERICO = { critico: 0, normal: 1, alerta: 2 };
 
-const STATUS_NUMERICO = {
-  critico: 0,
-  normal: 1,
-  alerta: 2,
-};
+// Resume o snapshot JSONL no formato usado pelos endpoints atuais.
+function montarSnapshot(snapshot) {
+  if (!snapshot) {
+    return {
+      status: null,
+      nivel: "sem_dados",
+      ultima_leitura: null,
+      componentes: {},
+      alertas: [],
+    };
+  }
 
-// Monta um retrato único do servidor.
-function montarSnapshot(snapshot = {}) {
   const alertas = [];
   let pior = null;
-
   const timestamp = snapshot.timestamp ?? null;
   const componentes = snapshot.componentes ?? {};
 
   for (const [grupo, componente] of Object.entries(componentes)) {
     const metricas = componente.metricas ?? {};
-    const parametros = componente.parametros ?? [];
-
-    // Aceita tanto o formato metricas quanto o formato parametros.
-    const listaMetricas = [
-      ...Object.entries(metricas).map(([chave, metrica]) => ({
-        chave,
-        ...metrica,
-      })),
-
-      ...parametros.map((metrica) => ({
-        chave: metrica.nome,
-        ...metrica,
-      })),
-    ];
-
-    for (const metrica of listaMetricas) {
+    for (const [chave, metrica] of Object.entries(metricas)) {
       const nivel = nivelDe(metrica.situacao);
-
       if (!nivel) continue;
 
-      if (!pior || PESO[nivel] > PESO[pior]) {
-        pior = nivel;
-      }
+      if (!pior || PESO[nivel] > PESO[pior]) pior = nivel;
 
       if (nivel !== "normal") {
         alertas.push({
           componente: grupo,
-          parametro: metrica.nome ?? metrica.chave,
+          parametro: metrica.nome ?? chave,
           valor: metrica.valor_pct ?? metrica.valor,
           limite_min: metrica.limite_min,
           limite_max: metrica.limite_max,
           situacao: metrica.situacao,
           nivel,
-          momento: timestamp ?? componente.timestamp ?? null,
+          momento: timestamp,
         });
       }
     }
 
     const nivelComponente = nivelDe(componente.situacao);
-
-    if (
-      nivelComponente &&
-      (!pior || PESO[nivelComponente] > PESO[pior])
-    ) {
+    if (nivelComponente && (!pior || PESO[nivelComponente] > PESO[pior])) {
       pior = nivelComponente;
     }
   }
@@ -299,7 +152,7 @@ function montarSnapshot(snapshot = {}) {
   alertas.sort((a, b) => PESO[b.nivel] - PESO[a.nivel]);
 
   return {
-    status: pior ? STATUS_NUMERICO[pior] : null,
+    status: pior ? STATUS_NUMERICO[pior] : null, // null = sem dados
     nivel: pior ?? "sem_dados",
     ultima_leitura: timestamp,
     componentes,
@@ -307,250 +160,192 @@ function montarSnapshot(snapshot = {}) {
   };
 }
 
-// ---------- leitura do S3 ----------
+// ---------- consultas ----------
 
-function carregarLeituras(empresaId) {
-  const empresa = Number(empresaId);
+function normalizarSnapshots(dados) {
+  const snapshots = Array.isArray(dados)
+    ? dados
+    : dados && typeof dados === "object"
+      ? [dados]
+      : [];
 
-  return comCache(`leituras|${empresa}`, async () => {
-    const arquivos = (await s3.listObjects(PASTA_GOLD))
-      .filter((o) => /\.jsonl?$/i.test(o.Key))
-      .sort(
-        (a, b) =>
-          new Date(b.LastModified) - new Date(a.LastModified),
-      )
-      .slice(0, MAX_ARQUIVOS);
-
-    const lotes = await mapaComLimite(
-      arquivos,
-      4,
-      async (arquivo) => {
-        const linhas = (await s3.getJsonLines(arquivo.Key)) ?? [];
-
-        return linhas
-          .filter(
-            (l) =>
-              l &&
-              l.timestamp &&
-              Number(l.id_empresa) === empresa,
-          )
-          .map((l) => ({
-            ...l,
-            _chegou_em: new Date(arquivo.LastModified),
-          }));
-      },
-    );
-
-    return lotes.flat();
-  });
+  return snapshots.map(normalizarSnapshot);
 }
 
-function agruparPorEmbarcado(leituras) {
-  const mapa = new Map();
+function situacaoPorLimites(valor, metrica) {
+  const limiteMin = Number(metrica.limite_min);
+  const limiteMax = Number(metrica.limite_max);
 
-  for (const leitura of leituras) {
-    const id = Number(leitura.id_embarcado);
+  if (limiteMin > 0 && valor <= limiteMin) return "Crítico";
+  if (limiteMax > 0) {
+    if (valor >= limiteMax) return "Crítico";
+    if (valor >= 0.7 * limiteMax) return "Alerta";
+  }
+  return "Normal";
+}
 
-    if (!Number.isFinite(id)) continue;
+function normalizarSnapshot(snapshot) {
+  if (!snapshot?.componentes || typeof snapshot.componentes !== "object") {
+    return snapshot;
+  }
 
-    if (!mapa.has(id)) {
-      mapa.set(id, []);
+  const componentes = { ...snapshot.componentes };
+
+  for (const grupo of ["ram", "swap", "disco"]) {
+    const componente = componentes[grupo];
+    const uso = componente?.metricas?.uso;
+    if (
+      !uso ||
+      typeof uso.valor !== "number" ||
+      typeof uso.total !== "number" ||
+      uso.total <= 0
+    ) {
+      continue;
     }
 
-    mapa.get(id).push(leitura);
-  }
+    const percentualAusente =
+      uso.valor_pct == null || (uso.valor_pct === 0 && uso.valor > 0);
+    if (!percentualAusente) continue;
 
-  for (const lista of mapa.values()) {
-    lista.sort(
-      (a, b) =>
-        String(a.timestamp).localeCompare(String(b.timestamp)) ||
-        a._chegou_em - b._chegou_em,
-    );
-  }
+    const valorPct = (uso.valor / uso.total) * 100;
+    if (!Number.isFinite(valorPct) || valorPct > 100) continue;
 
-  return mapa;
-}
-
-function construirSnapshot(lista) {
-  if (!lista || lista.length === 0) {
-    return {
-      ...montarSnapshot({}),
-      ip: null,
-      sistema: null,
-      leituras_recentes: 0,
-      ultimo_arquivo_em: null,
-      recente: false,
+    const situacao = situacaoPorLimites(valorPct, uso);
+    componentes[grupo] = {
+      ...componente,
+      situacao,
+      metricas: {
+        ...componente.metricas,
+        uso: { ...uso, valor_pct: valorPct, situacao },
+      },
     };
   }
 
-  const ultima = lista[lista.length - 1];
+  const rede = componentes.rede;
+  if (rede?.metricas) {
+    const metricas = { ...rede.metricas };
+    for (const nome of ["download", "upload", "latencia"]) {
+      if (metricas[nome]?.valor === 0) {
+        metricas[nome] = {
+          ...metricas[nome],
+          valor: null,
+          situacao: "Normal",
+        };
+      }
+    }
 
-  return {
-    ...montarSnapshot({
-      timestamp: ultima.timestamp,
-      componentes: converterComponentes(ultima),
-    }),
+    const pacotes = rede.pacotes
+      ? Object.fromEntries(
+          Object.entries(rede.pacotes).map(([nome, dados]) => [
+            nome,
+            dados && typeof dados === "object"
+              ? Object.fromEntries(
+                  Object.entries(dados).map(([campo, valor]) => [
+                    campo,
+                    valor === 0 ? null : valor,
+                  ]),
+                )
+              : dados,
+          ]),
+        )
+      : rede.pacotes;
 
-    ip: ultima.ip || null,
-    sistema: extrairSistema(ultima),
-    leituras_recentes: lista.length,
+    componentes.rede = { ...rede, metricas, pacotes };
+  }
 
-    ultimo_arquivo_em: ultima._chegou_em
-      ? ultima._chegou_em.toISOString()
-      : null,
-
-    recente: ultima._chegou_em
-      ? Date.now() - ultima._chegou_em.getTime() <= JANELA_RECENTE_MS
-      : false,
-  };
+  return { ...snapshot, componentes };
 }
 
-// ---------- consultas ----------
+// Lê os snapshots JSONL do MAC nas partições horárias solicitadas.
+async function carregarSnapshots(mac, horas = HORAS_ATRAS) {
+  return comCache(`leituras|${mac}|${horas}`, async () => {
+    const listas = await Promise.all(
+      prefixosDasUltimasHoras(mac, { horas }).map((prefixo) => s3.listObjects(prefixo)),
+    );
+    const objetos = listas
+      .flat()
+      .sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
+    const porTimestamp = new Map();
 
-// Snapshot mais recente de um embarcado específico.
-async function ultimoSnapshot(empresaId, embarcadoId) {
-  const porId = agruparPorEmbarcado(
-    await carregarLeituras(empresaId),
-  );
-
-  const lista = porId.get(Number(embarcadoId)) ?? [];
-
-  return {
-    id_embarcado: Number(embarcadoId),
-    ...construirSnapshot(lista),
-  };
-}
-
-// Resumo de todos os embarcados de uma empresa.
-async function resumoEmpresa(empresaId, embarcados = []) {
-  return comCache(`resumo|${empresaId}`, async () => {
-    const leituras = await carregarLeituras(empresaId);
-    const porId = agruparPorEmbarcado(leituras);
-
-    return embarcados.map((embarcado) => {
-      const lista =
-        porId.get(Number(embarcado.id_embarcado)) ?? [];
-
-      return {
-        id_embarcado: embarcado.id_embarcado,
-        apelido: embarcado.apelido,
-        endereco_mac: embarcado.endereco_mac,
-        ...construirSnapshot(lista),
-      };
+    const dados = await mapaComLimite(objetos, 8, (objeto) => s3.getObject(objeto.Key));
+    dados.forEach((arquivo) => {
+      for (const snapshot of normalizarSnapshots(arquivo)) {
+        if (snapshot?.timestamp) porTimestamp.set(snapshot.timestamp, snapshot);
+      }
     });
+
+    return [...porTimestamp.values()].sort((a, b) =>
+      a.timestamp.localeCompare(b.timestamp),
+    );
   });
 }
 
-// ---------- histórico para os gráficos ----------
-
-function serie(
-  macBruto,
-  componente,
-  { horas = HORAS_ATRAS, maxPontos = 30 } = {},
-) {
-  if (!COMPONENTES.includes(componente)) {
-    throw new ErroValidacao(
-      `Componente inválido. Use: ${COMPONENTES.join(", ")}.`,
-    );
-  }
-
+// Último retrato do servidor: cpu, ram, disco e rede + situação geral + alertas.
+function ultimoSnapshot(macBruto) {
   const mac = normalizarMac(macBruto);
 
-  return comCache(
-    `serie|${mac}|${componente}|${horas}|${maxPontos}`,
-    async () => {
-      const listas = await Promise.all(
-        prefixosDasUltimasHoras(mac, componente, { horas }).map(
-          (p) => s3.listObjects(p),
-        ),
-      );
-
-      // ano=/mes=/dia=/hora= com zeros à esquerda:
-      // ordem alfabética = ordem cronológica.
-      const chaves = listas
-        .flat()
-        .map((o) => o.Key)
-        .sort()
-        .slice(-maxPontos);
-
-      const jsons = (
-        await mapaComLimite(chaves, 8, (chave) =>
-          s3.getObject(chave),
-        )
-      ).filter(Boolean);
-
-      // A ETL pode regravar a mesma leitura.
-      // Mantém apenas um ponto por timestamp.
-      const porTimestamp = new Map();
-
-      for (const json of jsons) {
-        if (json.timestamp) {
-          porTimestamp.set(json.timestamp, json);
-        }
-      }
-
-      const ordenados = [...porTimestamp.values()].sort(
-        (a, b) => a.timestamp.localeCompare(b.timestamp),
-      );
-
-      const nomes = [
-        ...new Set(
-          ordenados.flatMap((j) =>
-            (j.parametros ?? []).map((p) => p.nome),
-          ),
-        ),
-      ];
-
-      const parametros = Object.fromEntries(
-        nomes.map((n) => [
-          n,
-          {
-            limite_min: null,
-            limite_max: null,
-            valores: [],
-            situacoes: [],
-          },
-        ]),
-      );
-
-      for (const json of ordenados) {
-        const porNome = new Map(
-          (json.parametros ?? []).map((p) => [p.nome, p]),
-        );
-
-        for (const nome of nomes) {
-          const p = porNome.get(nome);
-          const alvo = parametros[nome];
-
-          alvo.valores.push(p?.valor ?? null);
-          alvo.situacoes.push(p?.situacao ?? null);
-
-          if (p) {
-            alvo.limite_min = p.limite_min;
-            alvo.limite_max = p.limite_max;
-          }
-        }
-      }
-
-      return {
-        componente,
-        horarios: ordenados.map((j) => j.timestamp),
-        parametros,
-      };
-    },
-  );
+  return comCache(`snap|${mac}`, async () => {
+    const snapshots = await carregarSnapshots(mac);
+    return montarSnapshot(snapshots.at(-1) ?? null);
+  });
 }
 
-// ---------- exports ----------
+// Histórico de um componente: um ponto por snapshot, em ordem de tempo.
+function serie(macBruto, componente, { horas = HORAS_ATRAS, maxPontos = 30 } = {}) {
+  if (!COMPONENTES.includes(componente)) {
+    throw new ErroValidacao(`Componente inválido. Use: ${COMPONENTES.join(", ")}.`);
+  }
+  const mac = normalizarMac(macBruto);
+
+  return comCache(`serie|${mac}|${componente}|${horas}|${maxPontos}`, async () => {
+    const snapshots = await carregarSnapshots(mac, horas);
+    const ordenados = snapshots.slice(-maxPontos);
+
+    return {
+      componente,
+      horarios: ordenados.map((snapshot) => snapshot.timestamp),
+      leituras: ordenados,
+    };
+  });
+}
+
+async function resumoEmpresa(empresaId, embarcados) {
+  const servidores = await mapaComLimite(
+    Array.isArray(embarcados) ? embarcados : [],
+    8,
+    async (embarcado) => {
+      try {
+        const resultado = await ultimoSnapshot(embarcado.endereco_mac);
+        return {
+          ...embarcado,
+          ...resultado,
+          recente: resultado.ultima_leitura !== null,
+        };
+      } catch (error) {
+        if (error instanceof ErroValidacao) {
+          return {
+            ...embarcado,
+            ...montarSnapshot(null),
+            recente: false,
+          };
+        }
+        throw error;
+      }
+    },
+  );
+
+  return servidores;
+}
 
 module.exports = {
   COMPONENTES,
   ErroValidacao,
-  converterComponentes,
+  normalizarMac,
+  prefixosDasUltimasHoras,
   montarSnapshot,
   mapaComLimite,
   ultimoSnapshot,
-  resumoEmpresa,
   serie,
+  resumoEmpresa,
   limparCache,
 };
