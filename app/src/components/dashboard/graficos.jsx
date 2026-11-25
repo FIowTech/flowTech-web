@@ -16,7 +16,7 @@ import { Doughnut } from "react-chartjs-2";
 import { Bar } from "react-chartjs-2";
 import { useTheme } from "@/components/theme-provider";
 import { useEffect, useState } from "react";
-
+import annotationPlugin from "chartjs-plugin-annotation";
 
 ChartJS.register(
   ArcElement,
@@ -29,6 +29,7 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
+  annotationPlugin
 );
 
 // gráfico de linha.
@@ -225,7 +226,7 @@ export function GraficoBarras({ labels, valores, cores }) {
         data: valores,
         backgroundColor: cores,
         borderRadius: 5,
-        borderWidth: 0,
+        borderWidth: 1,
       },
     ],
   };
@@ -235,13 +236,27 @@ export function GraficoBarras({ labels, valores, cores }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
+      annotation: {
+          annotations: {
+            linhaMeta: {
+              type: 'line',
+              // Linha horizontal no valor 15 do eixo Y
+              yMin: 15,
+              yMax: 15,
+
+              borderColor: 'red',
+              borderWidth: 2,
+              borderDash: [8, 5]
+            }
+          }
+        }
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          precision: 0,
-        },
+        // ticks: {
+        //   precision: 0,
+        // },
       },
     },
   };

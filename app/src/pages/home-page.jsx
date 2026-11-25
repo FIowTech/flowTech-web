@@ -5,6 +5,8 @@ import { useFetchGoldAlertasComponentes } from "@/hooks/useFetchGoldAlertasCompo
 import { Relogio } from "@/components/relogio";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
+// import { useFetchChamadosJira } from "@/hooks/useFetchChamadosJira";
+import { useFetchJiraEquipe } from "@/hooks/useFetchJiraEquipe";
 import { useAuth } from "@/store/auth-store";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,19 @@ export default function HomePage() {
     id: String(embarcado.id),
     nome: embarcado.nome ?? `Servidor ${embarcado.id}`,
   }));
+
+  // const {
+  //   dados: chamadosJira,
+  //   totalChamados,
+  //   isLoading: carregandoJira,
+  //   error: erroJira,
+  // } = useFetchChamadosJira();
+  const {
+    labels: labelsJira,
+    valores: valoresJira,
+    isLoading: loadingJira,
+    error: errorJira,
+  } = useFetchJiraEquipe();
 
   // // Métricas simuladas: mudam sozinhas a cada 3 segundos (ver useMetricasMock)
   // const metricas = useMetricasMock();
@@ -233,24 +248,43 @@ export default function HomePage() {
 
         </div>
         <div className="flex flex-row gap-6">
-          <div className="h-93 bg-background border border-border p-4 rounded-2xl mt-3 w-170">
-              <span>Chamados da Equipe</span>
-              <div className="h-70 w-100">
+          <div className="h-93 bg-background border border-border p-4 rounded-2xl mt-3 w-full">
+              <div className="flex justify-between items-center">
+                <span>Chamados da Equipe</span>
+                        
+                {/* <span className="text-sm text-muted-foreground">
+                  Total: {totalChamados}
+                </span> */}
+              </div>
+              <div className="h-70 w-full">
                 <GraficoBarras
-                  labels={["Márcio", "Kevin", "Agatha"]}
-                  valores={[35, 52, 28]}
-                  cores={["#22c55e", "#f59e0b", "#3b82f6"]}
+                  // labels={chamadosJira.map((chamado) => chamado.nome)}
+                  // valores={chamadosJira.map((chamado) => chamado.total)}
+                  // cores={["#22c55e", "#f59e0b", "#3b82f6"]}
+                    labels={labelsJira}
+                    valores={valoresJira}
+                    cores={labelsJira.map(
+                      (_, index) =>
+                        [
+                          "#22c55e",
+                          "#f59e0b",
+                          "#3b82f6",
+                          "#8b5cf6",
+                          "#ef4444",
+                          "#06b6d4",
+                        ][index % 6]
+                    )}
                 />
               </div>
           </div>
           <div className="w-100 shrink-0">
-            {/* <InsightsPeriodo
+            <InsightsPeriodo
               totalAlertas={totalAlertas}
               periodo={periodo}
               variacaoPercentual={null}
               servidoresSemAlertas={null}
               totalServidores={null}
-            /> */}
+            />
           </div>
         </div>
     </div>
