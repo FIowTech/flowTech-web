@@ -237,17 +237,10 @@ function DadosGold({ id, servidor }) {
 
           const pct = gold?.disponibilidade_percent ?? servidor?.disponibilidade_percent ?? null;
 
-          return (
-            <Linha
-              label="Disponibilidade:"
-              valor={(
-                <div className="flex items-center gap-2">
-                  <Badge variant={variante}>{texto}</Badge>
-                  {pct != null && <span className="text-xs text-muted-foreground">{String(pct)}%</span>}
-                </div>
-              )}
-            />
-          );
+          // Exibe apenas a porcentagem (quando disponível) ou um texto curto de fallback,
+          // mantendo o mesmo estilo dos outros campos.
+          const display = pct != null ? `${pct}%` : texto;
+          return <Linha label="Disponibilidade:" valor={display} />;
         })()}
       </Secao>
 
