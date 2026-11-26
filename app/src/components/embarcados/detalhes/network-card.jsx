@@ -7,15 +7,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "cn";
 import { ChevronDownCircleIcon, ChevronUpCircleIcon } from "lucide-react";
 
-export function NetworkCard({ title, network }) {
+export function NetworkCard({
+  title,
+  network,
+  isLoading = false,
+  notMonitoredMessage,
+  compact = false,
+}) {
   return (
-    <Card size="sm" className="w-full h-full">
+    <Card
+      size="sm"
+      className={cn("w-full h-full", compact && "[--card-spacing:--spacing(2)]")}
+    >
       <CardHeader className="relative">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription className="text-xs">{network.nome}</CardDescription>
+        <CardTitle className={cn(compact && "text-sm")}>{title}</CardTitle>
+        <CardDescription className="text-xs">
+          {network.nome || "Sem dados"}
+        </CardDescription>
         <Badge
           className={cn(
             "absolute top-2 right-2 border",
@@ -27,31 +39,41 @@ export function NetworkCard({ title, network }) {
               "border-destructive bg-destructive-foreground text-destructive",
           )}
         >
-          {network.status}
+          {notMonitoredMessage ? "Não monitorado" : network.status}
         </Badge>
       </CardHeader>
       <CardContent className={"flex items-center h-full"}>
-        <h2 className="text-3xl font-bold font-heading">
-          {network.valor}
-          {network.unidadeMedida}
-        </h2>
+        {isLoading ? (
+          <Skeleton className="h-9 w-24" />
+        ) : (
+          <h2 className={cn("font-bold font-heading", compact ? "text-2xl" : "text-3xl")}>
+            {network.valor}
+            {network.unidadeMedida}
+          </h2>
+        )}
       </CardContent>
-      <CardFooter className="text-xs text-text-muted flex space-x-2">
-        <span className="flex items-center gap-1">
-          <ChevronUpCircleIcon size={16} />{" "}
-          <span>
-            {network.extra.download}
-            {network.unidadeMedida}
-          </span>
-        </span>{" "}
-        <p>•</p>
-        <span className="flex items-center gap-1">
-          <ChevronDownCircleIcon size={16} />{" "}
-          <span>
-            {network.extra.upload}
-            {network.unidadeMedida}
-          </span>
-        </span>
+      <CardFooter className={cn("text-xs text-text-muted flex space-x-2", compact && "py-2")}>
+        {notMonitoredMessage ? (
+          <span>{notMonitoredMessage}</span>
+        ) : (
+          <>
+            <span className="flex items-center gap-1">
+              <ChevronUpCircleIcon size={16} />
+              <span>
+                {network.extra.download}
+                {network.unidadeMedida}
+              </span>
+            </span>
+            <p>•</p>
+            <span className="flex items-center gap-1">
+              <ChevronDownCircleIcon size={16} />
+              <span>
+                {network.extra.upload}
+                {network.unidadeMedida}
+              </span>
+            </span>
+          </>
+        )}
       </CardFooter>
     </Card>
   );

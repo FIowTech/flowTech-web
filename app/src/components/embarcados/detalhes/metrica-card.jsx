@@ -7,17 +7,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "cn";
 
-// variation = line | radial
-export function MetricaCard({ title, variation = "line", metrica }) {
-  const footerMessage = metrica.extra.mensagem || `${metrica.valorPct}% em uso`;
+// variation = line | circle
+export function MetricaCard({
+  title,
+  variation = "line",
+  metrica,
+  isLoading = false,
+  notMonitoredMessage,
+  compact = false,
+}) {
+  const footerMessage = notMonitoredMessage
+    ? notMonitoredMessage
+    : metrica.extra?.mensagem || `${metrica.valorPct}% em uso`;
 
   return (
-    <Card size="sm" className="w-full h-full">
+    <Card
+      size="sm"
+      className={cn("w-full h-full", compact && "[--card-spacing:--spacing(2)]")}
+    >
       <CardHeader className="relative">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription className="text-xs">{metrica.nome}</CardDescription>
+        <CardTitle className={cn(compact && "text-sm")}>{title}</CardTitle>
+        <CardDescription className="text-xs">
+          {metrica.nome || "Sem dados"}
+        </CardDescription>
         <Badge
           className={cn(
             "absolute top-2 right-2 border",
@@ -29,7 +44,7 @@ export function MetricaCard({ title, variation = "line", metrica }) {
               "border-destructive bg-destructive-foreground text-destructive",
           )}
         >
-          {metrica.status}
+          {notMonitoredMessage ? "Não monitorado" : metrica.status}
         </Badge>
       </CardHeader>
       <CardContent
@@ -38,19 +53,29 @@ export function MetricaCard({ title, variation = "line", metrica }) {
           variation === "line"
             ? "flex-col space-y-4"
             : "items-center justify-around",
+          compact && "pt-1",
         )}
       >
-        <h2 className="text-3xl font-bold font-heading">
-          {metrica.valor}
-          {metrica.unidadeMedida}
-        </h2>
-        <MetricGraph
-          value={metrica.valor}
-          total={metrica.total}
-          variation={variation}
-        />
+        {isLoading ? (
+          <div className="w-full space-y-4">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-3 w-full" />
+          </div>
+        ) : (
+          <>
+            <h2 className={cn("font-bold font-heading", compact ? "text-2xl" : "text-3xl")}>
+              {metrica.valor}
+              {metrica.unidadeMedida}
+            </h2>
+            <MetricGraph
+              value={notMonitoredMessage ? 0 : metrica.valor}
+              total={metrica.total}
+              variation={variation}
+            />
+          </>
+        )}
       </CardContent>
-      <CardFooter className="text-xs text-text-muted">
+      <CardFooter className={cn("text-xs text-text-muted", compact && "py-2")}>
         {footerMessage}
       </CardFooter>
     </Card>
@@ -58,7 +83,9 @@ export function MetricaCard({ title, variation = "line", metrica }) {
 }
 
 function MetricGraph({ value, total, variation }) {
-  const width = (Number(value) / Number(total)) * 100;
+  const safeTotal = Number(total) > 0 ? Number(total) : 100;
+  const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+  const width = Math.min(100, Math.max(0, (safeValue / safeTotal) * 100));
 
   const lineGraph = (
     <div className="overflow-hidden rounded-full w-full h-3 bg-background border border-border flex">
@@ -67,7 +94,29 @@ function MetricGraph({ value, total, variation }) {
   );
 
   const circleGraph = (
-    <div className="h-17 aspect-square rounded-full bg-background border border-border"></div>
+    <div className="h-17 aspect-square relative">
+      <svg viewBox="0 0 64 64" className="h-full w-full">
+        <circle
+          cx="32"
+          cy="32"
+          r="24"
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth="8"
+        />
+        <circle
+          cx="32"
+          cy="32"
+          r="24"
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${(width / 100) * (2 * Math.PI * 24)} ${2 * Math.PI * 24}`}
+          transform="rotate(-90 32 32)"
+        />
+      </svg>
+    </div>
   );
 
   return variation === "line" ? lineGraph : circleGraph;
