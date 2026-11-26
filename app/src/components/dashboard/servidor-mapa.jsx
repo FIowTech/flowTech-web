@@ -9,11 +9,12 @@ const cores = {
   verde: "#4fc58a",
   amarelo: "#f0c04d",
   vermelho: "#d2394e",
+  cinza: "#9aa0a6",
 };
 
 const centroInicial = [-23.5505, -46.6333]; // São Paulo
 
-const pesoPorStatus = { critico: 1, alerta: 0.6, controlado: 0.3 };
+const pesoPorStatus = { critico: 1, alerta: 0.6, controlado: 0.3, sem_dados: 0 };
 
 const gradienteCalor = {
   0.3: cores.verde,
@@ -24,6 +25,7 @@ const gradienteCalor = {
 function pegarCor(status) {
   if (status === "critico") return cores["vermelho"];
   if (status === "alerta") return cores["amarelo"];
+  if (status === "sem_dados" || status == null) return cores["cinza"];
 
   return cores["verde"];
 }
@@ -89,7 +91,12 @@ function CamadaCalor({ servidores }) {
       const coordenada = pegarCoordenada(servidor);
       if (!coordenada) continue;
 
-      const intensidade = pesoPorStatus[pegarStatusServidor(servidor)];
+      const status = pegarStatusServidor(servidor);
+      const intensidade = pesoPorStatus[status];
+
+      // ignora pontos sem intensidade (ex.: sem_dados ou indefinido)
+      if (!intensidade || intensidade <= 0) continue;
+
       pontos.push([coordenada[0], coordenada[1], intensidade]);
     }
 
