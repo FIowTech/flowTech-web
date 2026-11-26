@@ -11,7 +11,28 @@ export const useFetchEmbarcados = () => {
     const porId = new Map((resumo?.servidores ?? []).map((s) => [s.id_embarcado, s]));
     return (embarcados ?? []).map((e) => {
       const g = porId.get(e.id_embarcado);
-      return { ...e, status: g?.status ?? null, alertas: g?.alertas ?? [], ultima_leitura: g?.ultima_leitura ?? null };
+
+      // nivel do gold: 'normal' | 'alerta' | 'critico' | 'sem_dados'
+      const nivel = g?.nivel ?? null;
+
+      // status_front é o formato string que o frontend espera: controlado/alerta/critico/sem_dados
+      const status_front = nivel === "normal"
+        ? "controlado"
+        : nivel === "alerta"
+        ? "alerta"
+        : nivel === "critico"
+        ? "critico"
+        : "sem_dados";
+
+      return {
+        ...e,
+        // mantém status numérico vindo do gold (se houver)
+        status: g?.status ?? e.status ?? null,
+        nivel,
+        status_front,
+        alertas: g?.alertas ?? [],
+        ultima_leitura: g?.ultima_leitura ?? null,
+      };
     });
   }, [embarcados, resumo]);
 

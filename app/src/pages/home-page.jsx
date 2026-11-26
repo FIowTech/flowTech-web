@@ -39,21 +39,13 @@ export default function HomePage() {
   const usuario = useAuth((state) => state.usuario);
   const { empresa } = useFetchEmpresa();
   const { embarcados, resumo, isLoading } = useFetchEmbarcados();
-  const totalControlado = embarcados.filter(
-  (e) => pegarStatusServidor(e) === "controlado"
-).length;
+  // Preferir usar os totais já calculados pelo backend (gold/resumo)
+  const totaisGold = resumo?.totais;
 
-const totalAlerta = embarcados.filter(
-  (e) => pegarStatusServidor(e) === "alerta"
-).length;
-
-const totalCritico = embarcados.filter(
-  (e) => pegarStatusServidor(e) === "critico"
-).length;
-
-const totalSemDados = embarcados.filter(
-  (e) => pegarStatusServidor(e) === "sem_dados"
-).length;
+  const totalControlado = totaisGold ? totaisGold.controlado : embarcados.filter((e) => pegarStatusServidor(e) === "controlado").length;
+  const totalAlerta = totaisGold ? totaisGold.alerta : embarcados.filter((e) => pegarStatusServidor(e) === "alerta").length;
+  const totalCritico = totaisGold ? totaisGold.critico : embarcados.filter((e) => pegarStatusServidor(e) === "critico").length;
+  const totalSemDados = totaisGold ? totaisGold.sem_dados : embarcados.filter((e) => pegarStatusServidor(e) === "sem_dados").length;
 
 
   const [searchParams] = useSearchParams();
@@ -78,46 +70,29 @@ const totalAmarelo = contar("alerta");
 const totalVermelho = contar("critico");
 
 // Região com mais servidores críticos (desempate: mais em alerta)
-
 const regiaoCritica = useMemo(() => {
   const porRegiao = new Map();
 
   for (const servidor of embarcados) {
     const nome = pegarRegiao(servidor);
-
-    // Ignora embarcados sem região cadastrada
     if (!nome) continue;
 
-    const regiao = porRegiao.get(nome) ?? {
-      nome,
-      amarelo: 0,
-      vermelho: 0,
-      total: 0,
-    };
-
+    const regiao = porRegiao.get(nome) ?? { nome, amarelo: 0, vermelho: 0, total: 0 };
     regiao.total++;
 
-    const status = pegarStatusServidor(servidor);
+    // usar nivel preferencialmente (vindo do gold), senão fallback para pegarStatusServidor
+    const nivel = servidor.nivel ?? (servidor.status_front ?? pegarStatusServidor(servidor));
 
-    if (status === "alerta") {
-      regiao.amarelo++;
-    }
-
-    if (status === "critico") {
-      regiao.vermelho++;
-    }
+    if (nivel === "alerta") regiao.amarelo++;
+    if (nivel === "critico") regiao.vermelho++;
 
     porRegiao.set(nome, regiao);
   }
 
   return (
     [...porRegiao.values()]
-      .filter((regiao) => regiao.amarelo + regiao.vermelho > 0)
-      .sort(
-        (a, b) =>
-          b.vermelho - a.vermelho ||
-          b.amarelo - a.amarelo
-      )[0] ?? null
+      .filter((r) => r.amarelo + r.vermelho > 0)
+      .sort((a, b) => b.vermelho - a.vermelho || b.amarelo - a.amarelo)[0] ?? null
   );
 }, [embarcados]);
 

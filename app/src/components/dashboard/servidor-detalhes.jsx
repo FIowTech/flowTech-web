@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
+import { Spinner } from "../ui/spinner";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { useFetchProtectedResource } from "@/hooks/useFetchProtectedResource";
 
@@ -24,9 +25,8 @@ export function ServidorDetalhes({ servidor }) {
     );
   }
 
-    const endereco = servidor.endereco ?? {};
-      const sistema = servidor.sistema ?? tempSistema;
-
+  const endereco = servidor.endereco ?? {};
+  const sistema = servidor.sistema ?? tempSistema;
 
   // Leva para a página do servidor (rota /embarcados/:id)
   const handleVerDashboardClick = () => {
@@ -64,30 +64,21 @@ export function ServidorDetalhes({ servidor }) {
           <Linha label="Disco:" valor={sistema.disco} />
         </Secao>
 
-        <Secao titulo="Informação de Conexão">
-          <Linha label="Última conexão:" valor={sistema.cpu} />
-          <Linha label="IP:" valor={sistema.ram} />
-          <Linha label="Disponibilidade:" valor={sistema.disco} />
-        </Secao>
+        {/* Dados reais do Gold (conexão e recursos) */}
+        <DadosGold id={servidor.id_embarcado} />
 
-        <Secao titulo="Resumo de Recursos">
-          <Linha label="CPU:" valor={sistema.cpu} />
-          <Linha label="RAM:" valor={sistema.ram} />
-          <Linha label="Alertas ativos:" valor={sistema.disco} />
-        </Secao>
-
-      <Button
-        type="button"
-        size="sm"
-        className="group self-end gap-1.5 rounded-md px-4 font-semibold shadow-sm shadow-primary/30 transition-all hover:shadow-md hover:shadow-primary/40"
-        onClick={handleVerDashboardClick}
-      >
-        Ver dashboard
-        <ArrowRightIcon
-          weight="bold"
-          className="transition-transform group-hover:translate-x-0.5"
-        />
-      </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="group self-end gap-1.5 rounded-md px-4 font-semibold shadow-sm shadow-primary/30 transition-all hover:shadow-md hover:shadow-primary/40"
+          onClick={handleVerDashboardClick}
+        >
+          Ver dashboard
+          <ArrowRightIcon
+            weight="bold"
+            className="transition-transform group-hover:translate-x-0.5"
+          />
+        </Button>
       </CardContent>
     </Card>
   );
@@ -135,26 +126,62 @@ function formatarLeitura(texto) {
 }
 
 function DadosGold({ id }) {
-  const { resource: gold } = useFetchProtectedResource(`gold/embarcados/${id}`);
-  const sis = gold?.sistema;
+  const { resource: gold, isLoading, error, refetch } = useFetchProtectedResource(`gold/embarcados/${id}`);
 
-  const uso = (grupo, nome) => {
-    const valor = gold?.componentes?.[grupo]?.parametros?.find((p) => p.nome === nome)?.valor;
-    return valor == null ? null : `${Number(valor).toFixed(1)}%`;
+  // helper defensivo para extrair percentuais de diferentes formatos
+  const buscarPct = (g, grupo, possiveis) => {
+    const metricas = g?.componentes?.[grupo]?.metricas ?? {};
+    for (const nome of possiveis) {
+      const m = metricas[nome];
+      if (!m) continue;
+      const v = m.valor_pct ?? m.valor;
+      if (v == null) continue;
+      if (typeof v === "number") return `${v.toFixed(1)}%`;
+      return String(v);
+    }
+    return null;
   };
-  const discoTotal =
-    sis?.disco_total_gb == null ? null
-    : sis.disco_total_gb >= 1000 ? `${(sis.disco_total_gb / 1000).toFixed(1)} TB`
-    : `${sis.disco_total_gb.toFixed(0)} GB`;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-destructive">Erro ao carregar dados do S3.</p>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={refetch}>Recarregar</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gold || gold.nivel === "sem_dados") {
+    return (
+      <div className="text-xs text-muted-foreground">
+        <Secao titulo="Informação de Conexão">
+          <Linha label="IP:" valor={"—"} />
+          <Linha label="Última leitura:" valor={"—"} />
+          <Linha label="Chegou ao S3:" valor={"—"} />
+        </Secao>
+
+        <Secao titulo="Resumo de Recursos">
+          <Linha label="CPU:" valor={"—"} />
+          <Linha label="RAM:" valor={"—"} />
+          <Linha label="Disco:" valor={"—"} />
+          <Linha label="Alertas ativos:" valor={"0"} />
+        </Secao>
+      </div>
+    );
+  }
 
   return (
     <>
-      <Secao titulo="Especificações de Sistema">
-          <Linha label="CPU - Núcleos:" valor={sistema.cpu} />
-          <Linha label="RAM:" valor={sistema.ram} />
-          <Linha label="Disco:" valor={sistema.disco} />
-        </Secao>
-
       <Secao titulo="Informação de Conexão">
         <Linha label="IP:" valor={gold?.ip} />
         <Linha label="Última leitura:" valor={formatarLeitura(gold?.ultima_leitura)} />
@@ -162,10 +189,10 @@ function DadosGold({ id }) {
       </Secao>
 
       <Secao titulo="Resumo de Recursos">
-        <Linha label="CPU:" valor={uso("cpu", "cpu_uso_pct")} />
-        <Linha label="RAM:" valor={uso("ram", "ram_uso_pct")} />
-        <Linha label="Disco:" valor={uso("disco", "disco_uso_pct")} />
-        <Linha label="Alertas ativos:" valor={gold && String(gold.alertas.length)} />
+        <Linha label="CPU:" valor={buscarPct(gold, "cpu", ["cpu_uso_pct", "uso", "cpu_uso"])} />
+        <Linha label="RAM:" valor={buscarPct(gold, "ram", ["ram_uso_pct", "uso"])} />
+        <Linha label="Disco:" valor={buscarPct(gold, "disco", ["disco_uso_pct", "uso"])} />
+        <Linha label="Alertas ativos:" valor={gold.alertas ? String(gold.alertas.length) : "0"} />
       </Secao>
     </>
   );
