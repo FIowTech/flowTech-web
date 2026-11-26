@@ -166,13 +166,8 @@ const capturas = resumo?.capturas ?? { recebidas: 0, esperadas: 0, porticos: 0 }
     <StatusCount status="verde" quantidade={totalControlado} />
     <StatusCount status="amarelo" quantidade={totalAlerta} />
     <StatusCount status="vermelho" quantidade={totalCritico} />
+    <ResumoTotal total={embarcados.length} />
   </div>
-
-  <p className="mt-2 text-xs text-muted-foreground">
-    {totalSemDados} sem dados
-  </p>
-
-  <ResumoTotal total={embarcados.length} />
 </ResumoCard>
 <ResumoCard
   titulo="Região mais crítica"
