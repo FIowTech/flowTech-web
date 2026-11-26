@@ -7,6 +7,8 @@ const COMPONENTES = ["cpu", "ram", "disco", "rede"];
 const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/metricas/").replace(/\/?$/, "/");
 const HORAS_ATRAS = Number(process.env.GOLD_HORAS_ATRAS ?? 3);
 const TTL_MS = Number(process.env.GOLD_CACHE_SEGUNDOS ?? 15) * 1000;
+const DEFAULT_EXPECTED_PER_HOUR = Number(process.env.GOLD_EXPECTED_PER_HOUR ?? 12); // default: uma leitura a cada 5 minutos
+const HORAS_DISP = Number(process.env.GOLD_DISP_HORAS ?? HORAS_ATRAS);
 
 class ErroValidacao extends Error {}
 
@@ -178,6 +180,34 @@ function disponibilidadePorHoras(snapshots, horas = HORAS_ATRAS) {
   return Math.max(0, Math.min(100, pct));
 }
 
+// Calcula disponibilidade baseada em leituras recebidas vs esperadas.
+// expectedPerHour = leituras esperadas por hora (ex: 12 = 1 leitura a cada 5 minutos)
+function disponibilidadePorEsperado(snapshots, horas = HORAS_DISP, expectedPerHour = DEFAULT_EXPECTED_PER_HOUR) {
+  if (!Array.isArray(snapshots) || snapshots.length === 0) return 0.0;
+
+  const now = Date.now();
+  const cutoff = now - horas * 3_600_000;
+
+  const eps = Number(expectedPerHour) || DEFAULT_EXPECTED_PER_HOUR;
+  // janela em ms por slot esperado
+  const windowMs = Math.max(1_000, Math.floor(3_600_000 / eps));
+
+  const slots = new Set();
+  for (const s of snapshots) {
+    if (!s?.timestamp) continue;
+    const t = new Date(s.timestamp).getTime();
+    if (t < cutoff) continue;
+    slots.add(Math.floor(t / windowMs));
+  }
+
+  const presentes = slots.size;
+  const esperados = Math.max(1, Math.round(horas * eps));
+  const raw = (presentes / esperados) * 100;
+  const pct = Math.max(0, Math.min(100, raw));
+  // uma casa decimal
+  return Math.round(pct * 10) / 10;
+}
+
 // ---------- consultas ----------
 
 function normalizarSnapshots(dados) {
@@ -314,9 +344,25 @@ function ultimoSnapshot(macBruto) {
       resultado.ultimo_arquivo_em = ultimo_arquivo_em ? new Date(ultimo_arquivo_em).toISOString() : null;
       // Disponibilidade: porcentagem de horas com pelo menos uma leitura
       try {
-        resultado.disponibilidade_percent = disponibilidadePorHoras(snapshots, HORAS_ATRAS);
+        // calcular disponibilidade baseada em leituras recebidas vs esperadas
+        resultado.disponibilidade_percent = disponibilidadePorEsperado(snapshots, HORAS_DISP, DEFAULT_EXPECTED_PER_HOUR);
+        // meta para explicar: quantos slots recebidos / esperados
+        // recalc slots/esperados for meta
+        const windowMs = Math.max(1_000, Math.floor(3_600_000 / DEFAULT_EXPECTED_PER_HOUR));
+        const cutoff = Date.now() - HORAS_DISP * 3_600_000;
+        const slots = new Set();
+        for (const s of snapshots) {
+          if (!s?.timestamp) continue;
+          const t = new Date(s.timestamp).getTime();
+          if (t < cutoff) continue;
+          slots.add(Math.floor(t / windowMs));
+        }
+        const presentes = slots.size;
+        const esperados = Math.max(1, Math.round(HORAS_DISP * DEFAULT_EXPECTED_PER_HOUR));
+        resultado.disponibilidade_meta = { recebidos: presentes, esperados, horas: HORAS_DISP };
       } catch (err) {
         resultado.disponibilidade_percent = 0;
+        resultado.disponibilidade_meta = { recebidos: 0, esperados: HORAS_DISP * DEFAULT_EXPECTED_PER_HOUR, horas: HORAS_DISP };
       }
     }
     return resultado;

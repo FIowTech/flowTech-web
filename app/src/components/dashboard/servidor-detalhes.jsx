@@ -173,7 +173,7 @@ function DadosGold({ id, servidor }) {
         <Secao titulo="Informação de Conexão">
           <Linha label="IP:" valor={"—"} />
           <Linha label="Última leitura:" valor={"—"} />
-          <Linha label="Disponibilidade:" valor={(
+          <Linha label="Disponibilidade da rede:" valor={(
             <Badge variant="outline">{servidor?.recente ? "Disponível (sem S3)" : "—"}</Badge>
           )} />
         </Secao>
@@ -239,8 +239,8 @@ function DadosGold({ id, servidor }) {
 
           // Exibe apenas a porcentagem (quando disponível) ou um texto curto de fallback,
           // mantendo o mesmo estilo dos outros campos.
-          const display = pct != null ? `${pct}%` : texto;
-          return <Linha label="Disponibilidade:" valor={display} />;
+          const display = pct != null ? `${Number(pct).toFixed(1)}%` : texto;
+          return <Linha label="Disponibilidade da rede:" valor={display} />;
         })()}
       </Secao>
 
