@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Spinner } from "../ui/spinner";
+import { pegarStatusServidor } from "@/utils/status-servidor";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { useFetchProtectedResource } from "@/hooks/useFetchProtectedResource";
 
@@ -65,7 +66,7 @@ export function ServidorDetalhes({ servidor }) {
         </Secao>
 
         {/* Dados reais do Gold (conexão e recursos) */}
-        <DadosGold id={servidor.id_embarcado} />
+        <DadosGold id={servidor.id_embarcado} servidor={servidor} />
 
         <Button
           type="button"
@@ -104,7 +105,12 @@ function Linha({ label, valor }) {
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
       {label}
-      <Valor>{valor || "—"}</Valor>
+      {typeof valor === "string" || typeof valor === "number" ? (
+        <Valor>{valor || "—"}</Valor>
+      ) : (
+        // permite passar um componente (ex: Badge) diretamente
+        valor ?? <Valor>{"—"}</Valor>
+      )}
     </div>
   );
 }
@@ -125,7 +131,7 @@ function formatarLeitura(texto) {
   return data.split("-").reverse().join("/") + " " + (hora ?? "");
 }
 
-function DadosGold({ id }) {
+function DadosGold({ id, servidor }) {
   const { resource: gold, isLoading, error, refetch } = useFetchProtectedResource(`gold/embarcados/${id}`);
 
   // helper defensivo para extrair percentuais de diferentes formatos
@@ -167,7 +173,9 @@ function DadosGold({ id }) {
         <Secao titulo="Informação de Conexão">
           <Linha label="IP:" valor={"—"} />
           <Linha label="Última leitura:" valor={"—"} />
-          <Linha label="Chegou ao S3:" valor={"—"} />
+          <Linha label="Disponibilidade:" valor={(
+            <Badge variant="outline">{servidor?.recente ? "Disponível (sem S3)" : "—"}</Badge>
+          )} />
         </Secao>
 
         <Secao titulo="Resumo de Recursos">
@@ -185,7 +193,50 @@ function DadosGold({ id }) {
       <Secao titulo="Informação de Conexão">
         <Linha label="IP:" valor={gold?.ip} />
         <Linha label="Última leitura:" valor={formatarLeitura(gold?.ultima_leitura)} />
-        <Linha label="Chegou ao S3:" valor={gold?.ultimo_arquivo_em && new Date(gold.ultimo_arquivo_em).toLocaleString("pt-BR")} />
+        {/* Disponibilidade: preferir gold.disponivel, senão calc por ultima_leitura, senão fallback servidor */}
+        {(() => {
+          const LIMITE_MIN = Number(import.meta.env.VITE_GOLD_JANELA_CAPTURA_MIN ?? 60);
+          let disponivel = null;
+          if (gold?.disponivel !== undefined && gold?.disponivel !== null) {
+            disponivel = Boolean(gold.disponivel);
+          } else if (gold?.ultima_leitura) {
+            const diffMin = (Date.now() - new Date(gold.ultima_leitura).getTime()) / 60000;
+            disponivel = diffMin <= LIMITE_MIN;
+          } else {
+            disponivel = null;
+          }
+
+          let texto = "—";
+          let variante = "outline";
+
+          if (disponivel === true) {
+            texto = "Disponível";
+            variante = "default";
+          } else if (disponivel === false && gold?.ultima_leitura) {
+            texto = "Desatualizado";
+            variante = "secondary";
+          } else {
+            // fallback para servidor
+            if (servidor?.recente) {
+              texto = "Disponível (sem S3)";
+              variante = "default";
+            } else {
+              const st = pegarStatusServidor(servidor);
+              if (st === "controlado") {
+                texto = "Provável disponível";
+                variante = "default";
+              } else if (st === "alerta") {
+                texto = "Indisponível (alerta)";
+                variante = "secondary";
+              } else {
+                texto = "Indisponível";
+                variante = "destructive";
+              }
+            }
+          }
+
+          return <Linha label="Disponibilidade:" valor={(<Badge variant={variante}>{texto}</Badge>)} />;
+        })()}
       </Secao>
 
       <Secao titulo="Resumo de Recursos">

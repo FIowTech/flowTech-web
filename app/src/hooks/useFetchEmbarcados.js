@@ -32,6 +32,8 @@ export const useFetchEmbarcados = () => {
         status_front,
         alertas: g?.alertas ?? [],
         ultima_leitura: g?.ultima_leitura ?? null,
+        recente: g?.recente ?? false,
+        disponivel: g?.disponivel ?? null,
       };
     });
   }, [embarcados, resumo]);
