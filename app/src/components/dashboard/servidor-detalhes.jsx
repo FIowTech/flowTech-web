@@ -235,7 +235,19 @@ function DadosGold({ id, servidor }) {
             }
           }
 
-          return <Linha label="Disponibilidade:" valor={(<Badge variant={variante}>{texto}</Badge>)} />;
+          const pct = gold?.disponibilidade_percent ?? servidor?.disponibilidade_percent ?? null;
+
+          return (
+            <Linha
+              label="Disponibilidade:"
+              valor={(
+                <div className="flex items-center gap-2">
+                  <Badge variant={variante}>{texto}</Badge>
+                  {pct != null && <span className="text-xs text-muted-foreground">{String(pct)}%</span>}
+                </div>
+              )}
+            />
+          );
         })()}
       </Secao>
 

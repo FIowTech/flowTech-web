@@ -34,6 +34,7 @@ export const useFetchEmbarcados = () => {
         ultima_leitura: g?.ultima_leitura ?? null,
         recente: g?.recente ?? false,
         disponivel: g?.disponivel ?? null,
+        disponibilidade_percent: g?.disponibilidade_percent ?? null,
       };
     });
   }, [embarcados, resumo]);

@@ -157,7 +157,25 @@ function montarSnapshot(snapshot) {
     ultima_leitura: timestamp,
     componentes,
     alertas,
+    ip: snapshot?.ip ?? null,
   };
+}
+
+// Calcula a porcentagem de horas com pelo menos uma leitura nas últimas `horas` horas.
+function disponibilidadePorHoras(snapshots, horas = HORAS_ATRAS) {
+  if (!Array.isArray(snapshots) || snapshots.length === 0) return 0;
+
+  const horasSet = new Set();
+  for (const s of snapshots) {
+    if (!s?.timestamp) continue;
+    const d = new Date(s.timestamp);
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}-${d.getUTCHours()}`;
+    horasSet.add(key);
+  }
+
+  const presentes = horasSet.size;
+  const pct = Math.round((presentes / horas) * 100);
+  return Math.max(0, Math.min(100, pct));
 }
 
 // ---------- consultas ----------
@@ -274,9 +292,13 @@ async function carregarSnapshots(mac, horas = HORAS_ATRAS) {
       }
     });
 
-    return [...porTimestamp.values()].sort((a, b) =>
+    const snapshots = [...porTimestamp.values()].sort((a, b) =>
       a.timestamp.localeCompare(b.timestamp),
     );
+
+    const ultimoArquivoEm = objetos.length ? objetos.at(-1).LastModified : null;
+
+    return { snapshots, ultimo_arquivo_em: ultimoArquivoEm };
   });
 }
 
@@ -285,8 +307,19 @@ function ultimoSnapshot(macBruto) {
   const mac = normalizarMac(macBruto);
 
   return comCache(`snap|${mac}`, async () => {
-    const snapshots = await carregarSnapshots(mac);
-    return montarSnapshot(snapshots.at(-1) ?? null);
+    const { snapshots, ultimo_arquivo_em } = await carregarSnapshots(mac);
+    const snapshot = snapshots.at(-1) ?? null;
+    const resultado = montarSnapshot(snapshot);
+    if (resultado) {
+      resultado.ultimo_arquivo_em = ultimo_arquivo_em ? new Date(ultimo_arquivo_em).toISOString() : null;
+      // Disponibilidade: porcentagem de horas com pelo menos uma leitura
+      try {
+        resultado.disponibilidade_percent = disponibilidadePorHoras(snapshots, HORAS_ATRAS);
+      } catch (err) {
+        resultado.disponibilidade_percent = 0;
+      }
+    }
+    return resultado;
   });
 }
 
@@ -298,7 +331,7 @@ function serie(macBruto, componente, { horas = HORAS_ATRAS, maxPontos = 30 } = {
   const mac = normalizarMac(macBruto);
 
   return comCache(`serie|${mac}|${componente}|${horas}|${maxPontos}`, async () => {
-    const snapshots = await carregarSnapshots(mac, horas);
+    const { snapshots } = await carregarSnapshots(mac, horas);
     const ordenados = snapshots.slice(-maxPontos);
 
     return {
