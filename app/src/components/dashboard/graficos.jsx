@@ -396,3 +396,181 @@ export function GraficoBarrasEmpilhadas({ labels, series }) {
 
   return <Bar data={{ labels, datasets }} options={opcoes} />;
 }
+
+export function GraficoBarrasHorizontaisJira({
+  labels = [],
+  valores = [],
+  nomeSerie = "Chamados em aberto",
+  itemSelecionado,
+  onBarClick,
+  limiteChamados = 8,
+}) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+
+  function gerarCorPorNome(nome) {
+  let hash = 0;
+
+  for (let i = 0; i < nome.length; i++) {
+    hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const hue = Math.abs(hash) % 360;
+
+  return `hsla(${hue}, 70%, 55%, 0.8)`;
+}
+
+  // 1. ORGANIZAÇÃO DOS DADOS
+  const dadosOrdenados = labels
+    .map((label, index) => ({
+      label,
+      valor: Number(valores[index]) || 0,
+    }))
+    .sort((a, b) => b.valor - a.valor);
+
+  const labelsOrdenados = dadosOrdenados.map(
+    (item) => item.label
+  );
+
+  const valoresOrdenados = dadosOrdenados.map(
+    (item) => item.valor
+  );
+
+  // 2. CONFIGURAÇÃO DAS CORES
+  const backgroundColors = labelsOrdenados.map((label) => {
+  if (label.toLowerCase().includes("não atribuído")) {
+    return "rgba(245, 158, 11, 0.85)";
+  }
+
+  if (itemSelecionado === label) {
+    return isLight
+      ? "rgba(24, 24, 27, 0.85)"
+      : "rgba(244, 244, 245, 0.75)";
+  }
+
+  return gerarCorPorNome(label);
+});
+
+  // 3. CONFIGURAÇÃO DOS DADOS DO GRÁFICO
+  const data = {
+    labels: labelsOrdenados,
+    datasets: [
+      {
+        label: nomeSerie,
+        data: valoresOrdenados,
+        backgroundColor: backgroundColors,
+        borderColor: isLight
+          ? "rgba(113, 113, 122, 0.5)"
+          : "rgba(161, 161, 170, 0.6)",
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+        barThickness: 20,
+        maxBarThickness: 26,
+      },
+    ],
+  };
+
+  // 4. CONFIGURAÇÕES DO CHART.JS
+  const opcoes = {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+
+    onClick: (_, elements) => {
+      if (elements.length > 0 && onBarClick) {
+        const index = elements[0].index;
+        onBarClick(labelsOrdenados[index]);
+      }
+    },
+
+    onHover: (event, elements) => {
+      if (event.native?.target) {
+        event.native.target.style.cursor =
+          elements.length > 0 && onBarClick
+            ? "pointer"
+            : "default";
+      }
+    },
+
+    plugins: {
+      legend: {
+        display: false,
+      },
+    
+      tooltip: {
+        padding: 12,
+        callbacks: {
+          label: (context) =>
+            `${context.parsed.x} chamados`,
+        },
+      },
+    
+      annotation: {
+        annotations: {
+          limite: {
+            type: "line",
+            xMin: limiteChamados,
+            xMax: limiteChamados,
+            borderColor: "red",
+            borderWidth: 2,
+            borderDash: [6, 5],
+            label: {
+              display: true,
+              content: `Limite: ${limiteChamados}`,
+              position: "start",
+              backgroundColor: "red",
+              color: "#ffffff",
+              font: {
+                size: 11,
+                weight: "bold",
+              },
+              padding: 5,
+            },
+          },
+        },
+      },
+    },
+
+    scales: {
+      x: {
+        beginAtZero: true,
+        border: {
+          display: false,
+        },
+        grid: {
+          color: isLight
+            ? "rgba(0, 0, 0, 0.08)"
+            : "rgba(255, 255, 255, 0.08)",
+          tickBorderDash: [4, 4],
+        },
+        ticks: {
+          color: isLight ? "#52525b" : "#a1a1aa",
+          font: {
+            size: 12,
+          },
+          precision: 0,
+          stepSize: 1,
+        },
+      },
+
+      y: {
+        border: {
+          display: false,
+        },
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: isLight ? "#18181b" : "#f4f4f5",
+          font: {
+            size: 12,
+            weight: 500,
+          },
+        },
+      },
+    },
+  };
+
+  return (<Bar data={data} options={opcoes} />);
+}

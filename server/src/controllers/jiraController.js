@@ -1,10 +1,11 @@
-import empresaModel from "../models/empresaModel.js";
-import { buscarChamadosEquipe } from "../service/jiraService.js";
+const empresaModel = require("../models/empresaModel");
+const { buscarChamadosEquipe } = require("../service/jiraService");
 
-export async function buscarChamadosEquipeController(req, res) {
+async function buscarChamadosEquipeController(req, res) {
   try {
-    // Obtém o ID da empresa do usuário autenticado
-    const { empresa_id } = req.usuario;
+    const { empresa_id } = req.usuario || {};
+
+    console.log("Empresa do usuário:", empresa_id);
 
     if (!empresa_id) {
       return res.status(400).json({
@@ -12,10 +13,12 @@ export async function buscarChamadosEquipeController(req, res) {
       });
     }
 
-    // Busca a empresa no banco de dados
     const empresaResponse = await empresaModel.buscarPorId(empresa_id);
 
-    const empresa = empresaResponse.data?.[0];
+    console.log("Retorno do banco:", empresaResponse);
+    console.log("Dados da empresa:", empresaResponse.data);
+
+    const empresa = empresaResponse.data;
 
     if (!empresa) {
       return res.status(404).json({
@@ -23,18 +26,20 @@ export async function buscarChamadosEquipeController(req, res) {
       });
     }
 
-    // Busca os chamados utilizando as credenciais da empresa
+    console.log("Empresa encontrada:", empresa.id_empresa);
+
     const chamados = await buscarChamadosEquipe(empresa);
 
-    // Agrupa os chamados por responsável
+    console.log("Total de chamados encontrados:", chamados.length);
+
     const chamadosPorIntegrante = {};
 
     chamados.forEach((chamado) => {
       const responsavel =
-        chamado.fields.assignee?.displayName ?? "Não atribuído";
+        chamado.fields.assignee?.displayName || "Não atribuído";
 
       chamadosPorIntegrante[responsavel] =
-        (chamadosPorIntegrante[responsavel] ?? 0) + 1;
+        (chamadosPorIntegrante[responsavel] || 0) + 1;
     });
 
     const labels = Object.keys(chamadosPorIntegrante);
@@ -51,13 +56,15 @@ export async function buscarChamadosEquipeController(req, res) {
         total: chamados.length,
       },
     });
-
   } catch (error) {
     console.error("Erro ao buscar chamados da equipe:", error);
 
     return res.status(500).json({
-      message: "Erro ao buscar chamados do Jira.",
-      error: error.message,
+      message: error.message || "Erro ao buscar chamados do Jira.",
     });
   }
 }
+
+module.exports = {
+  buscarChamadosEquipeController,
+};

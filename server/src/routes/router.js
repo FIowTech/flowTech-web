@@ -8,8 +8,7 @@ const embarcadosRouter = require("./embarcados");
 const codigoDeAcessoRouter = require("./codigos-acesso");
 const componentesRouter = require("./componentes");
 const goldRouter = require("./gold");
-// const dashboardRouter = require("./dashboard");
-const jiraRoutes = require("./jira");
+const jiraRouter = require("./jira");
 
 router.use("/usuarios", usuariosRouter);
 router.use("/empresas", authMiddleware, empresasRouter);
@@ -17,8 +16,7 @@ router.use("/embarcados", authMiddleware, embarcadosRouter);
 router.use("/codigos", authMiddleware, codigoDeAcessoRouter);
 router.use("/componentes", authMiddleware, componentesRouter);
 router.use("/gold", authMiddleware, goldRouter);
-// router.use("/dashboard", authMiddleware, dashboardRouter);
-router.use("/jira", jiraRoutes);
+router.use("/jira", authMiddleware, jiraRouter);
 
 module.exports = router;
 

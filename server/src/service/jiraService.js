@@ -1,4 +1,4 @@
-export async function buscarChamadosEquipe(empresa) {
+async function buscarChamadosEquipe(empresa) {
   const {
     jira_email,
     jira_api_key,
@@ -37,21 +37,29 @@ export async function buscarChamadosEquipe(empresa) {
       }),
     });
 
+    console.log("Status retornado pelo Jira:", response.status);
+
     if (!response.ok) {
       const erroJira = await response.text();
-
-      console.error("Erro retornado pelo Jira:", erroJira);
+      console.error("Resposta de erro do Jira:", erroJira);
 
       throw new Error(`Falha na consulta Jira: HTTP ${response.status}`);
     }
 
     const resultado = await response.json();
 
-    chamados.push(...(resultado.issues ?? []));
+    console.log(
+      "Chamados recebidos nesta página:",
+      resultado.issues?.length
+    );
 
-    nextPageToken = resultado.nextPageToken ?? null;
-
+    chamados.push(...(resultado.issues || []));
+    nextPageToken = resultado.nextPageToken || null;
   } while (nextPageToken);
 
   return chamados;
 }
+
+module.exports = {
+  buscarChamadosEquipe,
+};

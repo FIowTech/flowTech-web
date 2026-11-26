@@ -2,14 +2,12 @@ import { CodigosList } from "@/components/equipe/codigos-list";
 import { MembroCreateForm } from "@/components/equipe/forms/equipe-convite";
 import { MembrosList } from "@/components/equipe/membros-list";
 import { Relogio } from "@/components/relogio";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LABELS_NIVEIS_ACESSO } from "@/constants/labels-niveis-acesso";
 import { useFetchCodigos } from "@/hooks/useFetchCodigos";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
 import { useFetchUsuarios } from "@/hooks/useFetchUsuarios";
 import { useAuth } from "@/store/auth-store";
-import { SignOutIcon } from "@phosphor-icons/react";
 
 export default function EquipePage() {
   const usuario = useAuth((state) => state.usuario);
@@ -33,14 +31,6 @@ export default function EquipePage() {
 
         <div className="flex items-center gap-2">
           <Relogio />
-          {/* <Button
-            type="button"
-            variant="outline"
-            aria-label="Sair"
-            className="cursor-pointer text-destructive hover:text-destructive"
-          >
-            <SignOutIcon />
-          </Button> */}
         </div>
       </Card>
 
