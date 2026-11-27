@@ -197,9 +197,28 @@ async function resumo(req, res) {
     }
   }
 
+  // GET /api/gold/exposicao?periodo=mes-atual
+async function exposicao(req, res) {
+  const { empresa_id } = req.usuario;
+  const periodo = req.query.periodo ?? "mes-atual";
+
+  try {
+    const { data: embarcados } = await embarcadoModel.buscar(empresa_id);
+    const result = await gold.exposicao(embarcados, periodo);
+
+    res.status(200).json({
+      message: "Exposição de veículos calculada com sucesso.",
+      result,
+    });
+  } catch (error) {
+    responderErro(res, error, "exposicao");
+  }
+}
+
 module.exports = {
   snapshot,
   serie,
   resumo,
   alertasComponentes,
+  exposicao,
 };

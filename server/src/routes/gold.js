@@ -28,5 +28,10 @@ router.get("/embarcados/:embarcadoId", function (req, res) {
   goldController.snapshot(req, res);
 });
 
+// exposição de veículos durante irregularidades nos pórticos
+router.get("/exposicao", function (req, res) {
+  goldController.exposicao(req, res);
+});
+
 
 module.exports = router;

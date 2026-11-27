@@ -825,6 +825,342 @@ async function alertasComponentes(
     };
   }
 
+  const PASTA_FALHAS_TRAFEGO = (
+  process.env.GOLD_FALHAS_TRAFEGO_PREFIXO ?? "03-gold/falhas_com_trafego/"
+).replace(/\/?$/, "/");
+
+const NOMES_COMPONENTES_EXIBICAO = {
+  cpu: "CPU",
+  ram: "Memória RAM",
+  swap: "Memória SWAP",
+  disco: "Disco",
+  rede: "Rede",
+};
+
+function obterPeriodoExposicao(periodo, agora = new Date()) {
+  const fuso = fusoEtlHoras();
+  const dataLocalEtl = new Date(agora.getTime() + fuso * 3_600_000);
+
+  let inicioLocal;
+  let dias;
+
+  if (periodo === "mes-atual") {
+    inicioLocal = new Date(
+      Date.UTC(dataLocalEtl.getUTCFullYear(), dataLocalEtl.getUTCMonth(), 1),
+    );
+    dias = dataLocalEtl.getUTCDate();
+  } else {
+    const mapaDias = {
+      atual: 1,
+      "7d": 7,
+      "15d": 15,
+      "30d": 30,
+    };
+
+    if (!(periodo in mapaDias)) {
+      throw new ErroValidacao(
+        "Período inválido. Use mes-atual, atual, 7d, 15d ou 30d.",
+      );
+    }
+
+    dias = mapaDias[periodo];
+    inicioLocal = new Date(
+      Date.UTC(
+        dataLocalEtl.getUTCFullYear(),
+        dataLocalEtl.getUTCMonth(),
+        dataLocalEtl.getUTCDate(),
+      ),
+    );
+    inicioLocal.setUTCDate(inicioLocal.getUTCDate() - (dias - 1));
+  }
+
+  const inicio = new Date(inicioLocal.getTime() - fuso * 3_600_000);
+  return { inicio, fim: agora, dias };
+}
+
+function prefixosDiariosFalhas(prefixoBase, inicio, fim) {
+  const fuso = fusoEtlHoras();
+  const cursor = new Date(inicio.getTime() + fuso * 3_600_000);
+  const finalLocal = new Date(fim.getTime() + fuso * 3_600_000);
+
+  cursor.setUTCHours(0, 0, 0, 0);
+
+  const prefixos = [];
+  while (cursor.getTime() <= finalLocal.getTime()) {
+    prefixos.push(
+      `${prefixoBase}` +
+        `ano=${cursor.getUTCFullYear()}/` +
+        `mes=${doisDigitos(cursor.getUTCMonth() + 1)}/` +
+        `dia=${doisDigitos(cursor.getUTCDate())}/`,
+    );
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return [...new Set(prefixos)];
+}
+
+function formatarDuracaoMinutos(totalMinutos) {
+  const mins = Math.max(0, Math.round(totalMinutos));
+  const horas = Math.floor(mins / 60);
+  const resto = mins % 60;
+
+  if (horas === 0) return `${resto}min acumulados no período`;
+  if (resto === 0) return `${horas}h acumulados no período`;
+  return `${horas}h ${doisDigitos(resto)}min acumulados no período`;
+}
+
+function formatarNumeroPtBr(valor) {
+  return Math.round(valor || 0).toLocaleString("pt-BR");
+}
+
+async function exposicao(embarcados, periodo = "mes-atual") {
+  const { inicio, fim } = obterPeriodoExposicao(periodo);
+
+  const macsEmpresa = new Map();
+  for (const emb of embarcados) {
+    try {
+      const mac = normalizarMac(emb.endereco_mac);
+      macsEmpresa.set(mac, {
+        portico:
+          emb.apelido || emb.nome || `EMB-${emb.id_embarcado}`,
+        specs: {
+          host: emb.hostname || emb.apelido || `SRV-${emb.id_embarcado}`,
+          cpu: emb.cpu_info || emb.cpu || "-",
+          ram: emb.ram_total_gb ? `${emb.ram_total_gb} GB` : emb.ram || "-",
+          disco: emb.disco_total_gb
+            ? `${emb.disco_total_gb} TB`
+            : emb.disco || "-",
+        },
+      });
+    } catch {
+      // ignora embarcados sem MAC válido
+    }
+  }
+
+  const chaveCache = `exposicao|${periodo}|${[...macsEmpresa.keys()].sort().join(",")}`;
+
+  return comCache(chaveCache, async () => {
+    const prefixoAtivas = `${PASTA_FALHAS_TRAFEGO}em_andamento/`;
+    const prefixosEncerradas = prefixosDiariosFalhas(
+      `${PASTA_FALHAS_TRAFEGO}encerradas/`,
+      inicio,
+      fim,
+    );
+
+    // Lista ativas + partições diárias de encerradas em paralelo
+    const listasObjetos = await mapaComLimite(
+      [prefixoAtivas, ...prefixosEncerradas],
+      6,
+      async (prefixo) => s3.listObjects(prefixo),
+    );
+
+    const objetosJson = listasObjetos
+      .flat()
+      .filter((obj) => obj.Key?.endsWith(".json"))
+      .filter((obj) => {
+        const nomeArquivo = obj.Key.split("/").pop();
+        return [...macsEmpresa.keys()].some((mac) =>
+          nomeArquivo.startsWith(`${mac}_`),
+        );
+      });
+
+    const arquivosLidos = await mapaComLimite(
+      objetosJson,
+      8,
+      async (obj) => {
+        const conteudo = await s3.getObject(obj.Key);
+        return Array.isArray(conteudo) ? conteudo : conteudo ? [conteudo] : [];
+      },
+    );
+
+    const falhas = arquivosLidos.flat().filter((f) => {
+      if (!f || !f.endereco_mac || !f.data_inicio) return false;
+      const dtInicio = converterTimestampETL(f.data_inicio);
+      const dtFim = f.data_fim ? converterTimestampETL(f.data_fim) : fim;
+      if (!dtInicio || !dtFim) return false;
+
+      // Mantém falhas que interceptam o período selecionado
+      return dtFim >= inicio && dtInicio <= fim;
+    });
+
+    // Estruturas de agregação
+    let totalGeral = 0;
+    let totalComerciais = 0;
+    let totalPasseios = 0;
+    let totalMotos = 0;
+    let totalMinutosIndisponiveis = 0;
+
+    const porPortico = new Map();
+    const porPorticoComponente = new Map();
+    const porPorticoDia = new Map();
+
+    for (const falha of falhas) {
+      let mac;
+      try {
+        mac = normalizarMac(falha.endereco_mac);
+      } catch {
+        continue;
+      }
+
+      const infoEmb = macsEmpresa.get(mac);
+      if (!infoEmb) continue;
+
+      const portico = infoEmb.portico;
+      const compChave = String(falha.componente || "outros").toLowerCase();
+      const compNome =
+        NOMES_COMPONENTES_EXIBICAO[compChave] || compChave.toUpperCase();
+
+      const veiculos = Number(falha.trafego_total) || 0;
+      const comerciais = Number(falha.trafego_comercial) || 0;
+      const passeios = Number(falha.trafego_passeio) || 0;
+      const motos = Number(falha.trafego_moto) || 0;
+
+      const dtInicio = converterTimestampETL(falha.data_inicio);
+      const dtFim = falha.data_fim ? converterTimestampETL(falha.data_fim) : fim;
+      const inicioEfetivo = dtInicio < inicio ? inicio : dtInicio;
+      const fimEfetivo = dtFim > fim ? fim : dtFim;
+      const duracaoMin = Math.max(
+        0,
+        (fimEfetivo.getTime() - inicioEfetivo.getTime()) / 60_000,
+      );
+
+      totalGeral += veiculos;
+      totalComerciais += comerciais;
+      totalPasseios += passeios;
+      totalMotos += motos;
+      totalMinutosIndisponiveis += duracaoMin;
+
+      // 1. Ranking por pórtico
+      porPortico.set(portico, (porPortico.get(portico) || 0) + veiculos);
+
+      // 2. Componentes por pórtico
+      const compMap =
+        porPorticoComponente.get(portico) || new Map();
+      const atualComp = compMap.get(compNome) || {
+        componente: compNome,
+        veiculos: 0,
+        comerciais: 0,
+        passeios: 0,
+        motos: 0,
+        minutos: 0,
+        ocorrencias: 0,
+        ativas: 0,
+        encerradas: 0,
+      };
+
+      atualComp.veiculos += veiculos;
+      atualComp.comerciais += comerciais;
+      atualComp.passeios += passeios;
+      atualComp.motos += motos;
+      atualComp.minutos += duracaoMin;
+      atualComp.ocorrencias += 1;
+      if (falha.em_andamento) {
+        atualComp.ativas += 1;
+      } else {
+        atualComp.encerradas += 1;
+      }
+
+      compMap.set(compNome, atualComp);
+      porPorticoComponente.set(portico, compMap);
+
+      // 3. Evolução diária (DD/MM)
+      const fuso = fusoEtlHoras();
+      const dtLocal = new Date(dtInicio.getTime() + fuso * 3_600_000);
+      const diaChave = `${doisDigitos(dtLocal.getUTCDate())}/${doisDigitos(
+        dtLocal.getUTCMonth() + 1,
+      )}`;
+      const ordemDia = dtLocal.toISOString().slice(0, 10);
+
+      const diaMap = porPorticoDia.get(portico) || new Map();
+      const atualDia = diaMap.get(ordemDia) || {
+        data: diaChave,
+        total: 0,
+        comerciais: 0,
+      };
+      atualDia.total += veiculos;
+      atualDia.comerciais += comerciais;
+      diaMap.set(ordemDia, atualDia);
+      porPorticoDia.set(portico, diaMap);
+    }
+
+    // Ordena ranking decrescente
+    const ranking = [...porPortico.entries()]
+      .map(([portico, veiculos]) => ({ portico, veiculos }))
+      .sort((a, b) => b.veiculos - a.veiculos);
+
+    const maiorPortico = ranking.length > 0 ? ranking[0].portico : "-";
+
+    // Cobertura operacional estimada no período
+    const minutosTotaisPeriodo =
+      Math.max(1, macsEmpresa.size) *
+      ((fim.getTime() - inicio.getTime()) / 60_000);
+    const pctCobertura = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          ((minutosTotaisPeriodo - totalMinutosIndisponiveis) /
+            minutosTotaisPeriodo) *
+            100,
+        ),
+      ),
+    );
+
+    // Monta hardwarePorPortico e evolucaoPorPortico
+    const hardwarePorPortico = {};
+    const evolucaoPorPortico = {};
+
+    for (const infoEmb of macsEmpresa.values()) {
+      const portico = infoEmb.portico;
+      const compMap = porPorticoComponente.get(portico) || new Map();
+
+      const componentes = [...compMap.values()]
+        .sort((a, b) => b.veiculos - a.veiculos)
+        .map((c) => {
+          const mediaMin =
+            c.ocorrencias > 0 ? Math.round(c.minutos / c.ocorrencias) : 0;
+
+          return {
+            componente: c.componente,
+            veiculos: c.veiculos,
+            detalhes: {
+              comerciais: c.comerciais,
+              passeios: c.passeios,
+              motos: c.motos,
+            },
+            tempoAlerta: formatarDuracaoMinutos(c.minutos),
+            frequencia: `${c.ocorrencias} ocorrência(s) (média de ${mediaMin} min)`,
+            severidade: `Encerradas (${c.encerradas}x) vs. Em andamento (${c.ativas}x)`,
+          };
+        });
+
+      hardwarePorPortico[portico] = {
+        specs: infoEmb.specs,
+        componentes,
+      };
+
+      const diaMap = porPorticoDia.get(portico) || new Map();
+      evolucaoPorPortico[portico] = [...diaMap.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, ponto]) => ponto);
+    }
+
+    return {
+      resumo: {
+        total: formatarNumeroPtBr(totalGeral),
+        comerciais: formatarNumeroPtBr(totalComerciais),
+        passeios: formatarNumeroPtBr(totalPasseios),
+        motos: formatarNumeroPtBr(totalMotos),
+        maiorPortico,
+        cobertura: `${pctCobertura}%`,
+      },
+      ranking,
+      hardwarePorPortico,
+      evolucaoPorPortico,
+    };
+  });
+}
+
 module.exports = {
   COMPONENTES,
   ErroValidacao,
@@ -836,5 +1172,6 @@ module.exports = {
   ultimoSnapshot,
   serie,
   alertasComponentes,
+  exposicao,
   limparCache,
 };
