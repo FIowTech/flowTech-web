@@ -45,6 +45,9 @@ WORKDIR /server
 
 COPY --from=backend-build /server ./
 
+ENV APP_HOST=0.0.0.0
+ENV APP_PORT=3333
+
 EXPOSE 5173 3333
 
 CMD ["sh", "-c", "cd /server && npm start & cd ../app && npm run dev -- --host 0.0.0.0"]
