@@ -1,10 +1,27 @@
-.git
-**/node_modules
-**/dist
-**/.vite
-**/coverage
+# Arquivos de ambiente
+.env
+.env.*
 **/.env
-**/.DS_Store
-npm-debug.log
-Dockerfile
-.dockerignore
+**/.env.*
+
+# Dependências
+node_modules
+**/node_modules
+
+# Builds
+dist
+**/dist
+build
+**/build
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Logs
+*.log
+npm-debug.log*
