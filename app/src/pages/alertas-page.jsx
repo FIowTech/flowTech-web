@@ -7,8 +7,13 @@ import { AlertDetails } from "@/components/dashboard/Agatha/alerta-detalhes";
 import { useAuth } from "@/store/auth-store";
 import { LABELS_NIVEIS_ACESSO } from "@/constants/labels-niveis-acesso";
 import { Relogio } from "@/components/relogio";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { FilePdfIcon } from "@phosphor-icons/react";
+import { useGerarRelatorio } from "@/hooks/useGerarRelatorio";
 export default function AlertasPage() {
+const { gerarRelatorio, isLoading: isGerandoRelatorio } = useGerarRelatorio();
 const usuario = useAuth((state) => state.usuario);
 const cargo = LABELS_NIVEIS_ACESSO[usuario?.nivel_acesso ?? 2];
 const [selectedFilter, setSelectedFilter] = useState(null);
@@ -31,6 +36,9 @@ const quantidadeAlerta = alerts.filter(
     ? activeAlerts.filter((alert) => alert.estado === selectedFilter)
     : activeAlerts;
 
+  // Por enquanto o Java recebe apenas o primeiro da lista, como teste.
+  const primeiroApelido = filteredAlerts[0]?.embarcado;
+
   
 
 
@@ -52,7 +60,29 @@ return (
     </h1>
   </div>
 
-  <Relogio />
+  <div className="flex items-center gap-3">
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => gerarRelatorio(primeiroApelido)}
+      disabled={isGerandoRelatorio}
+    >
+      {isGerandoRelatorio ? (
+        <>
+          <Spinner />
+          Gerando...
+        </>
+      ) : (
+        <>
+          <FilePdfIcon />
+          Gerar relatório de lista
+        </>
+      )}
+    </Button>
+
+    <Relogio />
+  </div>
 </Card>
 </header>
 
@@ -78,6 +108,7 @@ return (
       </div>
 
       {/* Detalhes do alerta */}
+      
       <div className="min-w-0 flex flex-col gap-2">
   <AlertDetails alert={selectedAlert} />
   {/*<Encaminhar alert={selectedAlert} />*/}

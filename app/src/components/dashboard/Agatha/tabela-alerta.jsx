@@ -34,7 +34,7 @@ export default function AlertTable({
               <th className="px-4 py-3">Recurso</th>
               <th className="px-4 py-3">Início</th>
               <th className="px-4 py-3">Duração</th>
-              <th className="px-4 py-3">Recorrência 30 d</th>
+              
               
               
             </tr>
@@ -70,7 +70,7 @@ export default function AlertTable({
                 <td className="px-4 py-4 whitespace-nowrap">
                   {alert.duracao}
                 </td>
-                <td className="px-4 py-4">{alert.recorrencia}</td>
+                
 
                 
               </tr>
@@ -79,7 +79,7 @@ export default function AlertTable({
             {alerts.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   Nenhum alerta encontrado.
