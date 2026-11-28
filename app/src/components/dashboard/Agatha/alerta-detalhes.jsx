@@ -1,8 +1,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router";
 
-export function AlertDetails({ alert }) {
+export function AlertDetails({ alert }) 
+{
   if (!alert) {
     return (
       <Card size="sm" className="w-full bg-background">
@@ -18,6 +20,7 @@ export function AlertDetails({ alert }) {
     alerta: "bg-yellow-500/10 text-yellow-600",
     critico: "bg-red-500/10 text-red-600",
   };
+  console.log(alert)
 
   return (
     <Card size="sm" className="w-full bg-background">
@@ -40,10 +43,13 @@ export function AlertDetails({ alert }) {
         <Secao titulo="Informações do alerta">
           <Linha label="Recurso:" valor={alert.recurso} />
           <Linha label="Início:" valor={alert.inicio} />
-          <Linha label="Duração:" valor={alert.duracao} />
           <Linha
-            label="Recorrência (30 dias):"
-            valor={alert.recorrencia}
+            label="Duração:"
+            valor={
+              alert.em_andamento === true
+                ? `${alert.duracao} (em andamento)`
+                : alert.duracao
+            }
           />
         </Secao>
 
@@ -54,14 +60,18 @@ export function AlertDetails({ alert }) {
             valor={alert.estado}
           />
         </Secao>
-
+        <Link to={`/embarcados/${alert.id_embarcado}`}>
         <button
           type="button"
-          disabled
+          
           className="w-full rounded-md border px-3 py-2 text-xs font-medium text-muted-foreground opacity-60"
+          
         >
-          Ver mais detalhes
+          
+          Ver Logs/Traces
         </button>
+        </Link>
+        
       </CardContent>
     </Card>
   );

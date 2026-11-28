@@ -10,6 +10,7 @@ const componentesRouter = require("./componentes");
 const metricasRouter = require("./metricas");
 const tracesRouter = require("./traces");
 const logsRouter = require("./logs");
+const alertasRouter = require("./alertas");
 
 router.use("/usuarios", usuariosRouter);
 router.use("/empresas", authMiddleware, empresasRouter);
@@ -19,6 +20,7 @@ router.use("/componentes", authMiddleware, componentesRouter);
 router.use("/metricas", authMiddleware, metricasRouter);
 router.use("/traces", authMiddleware, tracesRouter);
 router.use("/logs", authMiddleware, logsRouter);
+router.use("/alertas", authMiddleware, alertasRouter);
 
 module.exports = router;
 
@@ -57,4 +59,8 @@ Metricas (/metricas)
 
 - GET /embarcados/:empresaId
 - DELETE /excluir/
+
+Alertas (/alertas)
+
+- GET / | {{baseUrl}}/alertas/
 */
