@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { useFetchEmbarcados } from "@/hooks/useFetchEmbarcados";
 import { useFetchEmpresa } from "@/hooks/useFetchEmpresa";
+import { useAuth } from "@/store/auth-store";
 import {
   ArrowsCounterClockwiseIcon,
   CaretDownIcon,
@@ -18,6 +19,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { pegarStatusServidor } from "@/utils/status-servidor";
+
+function formatarNumero(valor) {
+  if (valor === null || valor === undefined || valor === "") return "—";
+  const numero = Number(valor);
+  return Number.isFinite(numero)
+    ? new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(numero)
+    : String(valor);
+}
 
 function obterLimites(servidor, componente, limiteMaxPadrao) {
   const parametro = servidor.parametros?.find(
@@ -40,6 +49,7 @@ function obterLimites(servidor, componente, limiteMaxPadrao) {
 
 export default function EmbarcadosPage() {
   const navigate = useNavigate();
+  const token = useAuth((state) => state.token);
   const [searchParams] = useSearchParams();
   const idUrl = searchParams.get("id");
 
@@ -53,12 +63,53 @@ export default function EmbarcadosPage() {
   const [expandidoId, setExpandidoId] = useState(idUrl);
   const [abaDetalhe, setAbaDetalhe] = useState("processos");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [alertas, setAlertas] = useState([]);
+  const [alertasLoading, setAlertasLoading] = useState(false);
+  const [alertasError, setAlertasError] = useState(null);
+  const [alertasRefresh, setAlertasRefresh] = useState(0);
 
   useEffect(() => {
     if (idUrl) {
       setExpandidoId(idUrl);
     }
   }, [idUrl]);
+
+  useEffect(() => {
+    if (abaDetalhe !== "alertas" || !expandidoId || !token) return undefined;
+
+    const controller = new AbortController();
+
+    async function carregarAlertas() {
+      setAlertasLoading(true);
+      setAlertasError(null);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BASE_API_URL}/gold/embarcados/${expandidoId}/alertas`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          },
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Não foi possível buscar os alertas.");
+        }
+        if (!Array.isArray(data.result)) {
+          throw new Error("A resposta da API de alertas está em formato inválido.");
+        }
+        setAlertas(data.result);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAlertasError(error.message || "Não foi possível buscar os alertas.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setAlertasLoading(false);
+      }
+    }
+
+    carregarAlertas();
+    return () => controller.abort();
+  }, [abaDetalhe, expandidoId, token, alertasRefresh]);
 
   const handleVerNoMapa = (idEmbarcado) => {
     navigate(`/?selecionado=${idEmbarcado}`);
@@ -125,6 +176,7 @@ export default function EmbarcadosPage() {
               disabled={isRefreshing}
               onClick={async () => {
                 setIsRefreshing(true);
+                setAlertasRefresh((atual) => atual + 1);
                 await refetch();
                 setTimeout(() => setIsRefreshing(false), 500);
               }}
@@ -255,14 +307,52 @@ export default function EmbarcadosPage() {
                         />
                       ) : (
                         <div className="flex flex-col space-y-3 py-2">
-                          <div className="flex items-center justify-between p-3 border border-border rounded-md bg-background">
-                            <span className="text-xs text-muted-foreground font-mono">19:04:30</span>
-                            <span className="text-sm">CPU alerta: ultima medida: 85 | limite: 90%</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 border border-border rounded-md bg-background">
-                            <span className="text-xs text-muted-foreground font-mono">19:02:15</span>
-                            <span className="text-sm">RAM crítico: ultima medida: 95% | limite: 90%</span>
-                          </div>
+                          {alertasLoading ? (
+                            <div className="flex justify-center p-4"><Spinner /></div>
+                          ) : alertasError ? (
+                            <p className="p-3 text-sm text-destructive">{alertasError}</p>
+                          ) : alertas.length === 0 ? (
+                            <p className="p-3 text-sm text-muted-foreground">
+                              Nenhum alerta recente encontrado.
+                            </p>
+                          ) : (
+                            alertas.slice(0, 10).map((alerta, index) => {
+                              const nivel = String(alerta.nivel ?? "").toLowerCase();
+                              const critico = nivel === "critico";
+                              const unidade = alerta.unidade_medida
+                                ? ` ${alerta.unidade_medida}`
+                                : "";
+
+                              return (
+                                <div
+                                  key={`${alerta.momento}-${alerta.componente}-${alerta.parametro}-${index}`}
+                                  className="flex flex-col justify-between gap-2 rounded-md border border-border bg-background p-3 sm:flex-row sm:items-center"
+                                >
+                                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                                    {alerta.momento ?? "Horário não informado"}
+                                  </span>
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                                    <span className={`rounded-full border px-2 py-0.5 text-xs ${
+                                      critico
+                                        ? "border-red-500 text-red-500"
+                                        : "border-yellow-500 text-yellow-600"
+                                    }`}>
+                                      {critico ? "Crítico" : "Alerta"}
+                                    </span>
+                                    <span className="font-medium">
+                                      {String(alerta.componente ?? "Componente").toUpperCase()}
+                                      {alerta.parametro ? ` · ${alerta.parametro}` : ""}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      Atual: {formatarNumero(alerta.valor)}{unidade}
+                                      {" · "}Limite máx.: {formatarNumero(alerta.limite_max)}{unidade}
+                                      {" · "}Ocorrências: {formatarNumero(alerta.ocorrencias)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       )}
                     </div>

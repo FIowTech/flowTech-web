@@ -13,6 +13,11 @@ router.get("/embarcados/:embarcadoId/serie", function (req, res) {
   goldController.serie(req, res);
 });
 
+// Alertas recentes do embarcado
+router.get("/embarcados/:embarcadoId/alertas", function (req, res) {
+  goldController.alertas(req, res);
+});
+
 // ultimo retrato de um embarcado 
 router.get("/embarcados/:embarcadoId", function (req, res) {
   goldController.snapshot(req, res);

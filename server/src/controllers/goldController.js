@@ -84,6 +84,19 @@ async function serie(req, res) {
   }
 }
 
+// GET /api/gold/embarcados/:embarcadoId/alertas
+async function alertas(req, res) {
+  try {
+    const embarcado = await carregarEmbarcado(req, res);
+    if (!embarcado) return;
+
+    const result = await gold.alertas(embarcado.endereco_mac, { maxAlertas: 10 });
+    res.status(200).json({ message: "Alertas encontrados.", result });
+  } catch (error) {
+    responderErro(res, error, "alertas");
+  }
+}
+
 // GET /api/gold/resumo
 async function resumo(req, res) {
   const { empresa_id } = req.usuario;
@@ -124,4 +137,4 @@ async function resumo(req, res) {
   }
 }
 
-module.exports = { snapshot, serie, resumo };
+module.exports = { snapshot, serie, alertas, resumo };

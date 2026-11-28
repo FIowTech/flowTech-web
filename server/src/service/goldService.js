@@ -5,7 +5,9 @@ const s3 = require("./s3Service");
 const COMPONENTES = ["cpu", "ram", "disco", "rede"];
 
 const PASTA_GOLD = (process.env.GOLD_PREFIXO ?? "03-gold/metricas/").replace(/\/?$/, "/");
+const PASTA_ALERTAS = (process.env.ALERTAS_PREFIXO ?? "03-gold/alertas/").replace(/\/?$/, "/");
 const HORAS_ATRAS = Number(process.env.GOLD_HORAS_ATRAS ?? 3);
+const ALERTAS_HORAS_ATRAS = Number(process.env.ALERTAS_HORAS_ATRAS ?? 24);
 const TTL_MS = Number(process.env.GOLD_CACHE_SEGUNDOS ?? 15) * 1000;
 const DEFAULT_EXPECTED_PER_HOUR = Number(process.env.GOLD_EXPECTED_PER_HOUR ?? 12); // default: uma leitura a cada 5 minutos
 const HORAS_DISP = Number(process.env.GOLD_DISP_HORAS ?? HORAS_ATRAS);
@@ -32,7 +34,11 @@ const doisDigitos = (n) => String(n).padStart(2, "0");
 
 // Um prefixo por hora, da hora atual para trás. Os JSONL agora guardam todos
 // os componentes juntos, então basta filtrar pelo MAC no nome do arquivo.
-function prefixosDasUltimasHoras(mac, { agora = new Date(), horas = HORAS_ATRAS } = {}) {
+function prefixosDasUltimasHoras(
+  mac,
+  { agora = new Date(), horas = HORAS_ATRAS } = {},
+  pastaGold = PASTA_GOLD,
+) {
   const fuso = fusoEtlHoras();
   const prefixos = [];
 
@@ -40,7 +46,7 @@ function prefixosDasUltimasHoras(mac, { agora = new Date(), horas = HORAS_ATRAS 
     // Converte a hora atual para o fuso da ETL e volta uma hora por iteração.
     const d = new Date(agora.getTime() + fuso * 3_600_000 - atras * 3_600_000);
     prefixos.push(
-      `${PASTA_GOLD}ano=${d.getUTCFullYear()}/mes=${doisDigitos(d.getUTCMonth() + 1)}` +
+      `${pastaGold}ano=${d.getUTCFullYear()}/mes=${doisDigitos(d.getUTCMonth() + 1)}` +
         `/dia=${doisDigitos(d.getUTCDate())}/hora=${doisDigitos(d.getUTCHours())}` +
         `/${mac}_`,
     );
@@ -388,6 +394,27 @@ function serie(macBruto, componente, { horas = HORAS_ATRAS, maxPontos = 30 } = {
   });
 }
 
+function alertas(macBruto, { horas = ALERTAS_HORAS_ATRAS, maxAlertas = 10 } = {}) {
+  const mac = normalizarMac(macBruto);
+
+  return comCache(`alertas|${mac}|${horas}|${maxAlertas}`, async () => {
+    const listas = await Promise.all(
+      prefixosDasUltimasHoras(mac, { horas }, PASTA_ALERTAS).map((prefixo) =>
+        s3.listObjects(prefixo),
+      ),
+    );
+    const objetos = listas
+      .flat()
+      .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified));
+    const arquivos = await mapaComLimite(objetos, 8, (objeto) => s3.getObject(objeto.Key));
+    const itens = arquivos.flatMap((arquivo) => arquivo?.alertas ?? []);
+
+    return itens
+      .sort((a, b) => String(b.momento ?? "").localeCompare(String(a.momento ?? "")))
+      .slice(0, maxAlertas);
+  });
+}
+
 async function resumoEmpresa(empresaId, embarcados) {
   const servidores = await mapaComLimite(
     Array.isArray(embarcados) ? embarcados : [],
@@ -425,6 +452,7 @@ module.exports = {
   mapaComLimite,
   ultimoSnapshot,
   serie,
+  alertas,
   resumoEmpresa,
   limparCache,
 };

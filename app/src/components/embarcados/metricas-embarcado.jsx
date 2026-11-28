@@ -21,6 +21,33 @@ function valorMetrica(metrica, percentual = true) {
   return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
+function metricaRedeValida(metrica) {
+  return typeof metrica?.valor === "number" && Number.isFinite(metrica.valor) && metrica.valor !== 0;
+}
+
+function ultimaMetricaRedeValida(leituras, chave) {
+  return [...leituras]
+    .reverse()
+    .map((leitura) => leitura.componentes?.rede?.metricas?.[chave])
+    .find(metricaRedeValida);
+}
+
+function preservarUltimasMetricasRede(leituras, componentes) {
+  const rede = componentes.rede;
+  if (!rede) return componentes;
+
+  const metricas = { ...(rede.metricas ?? {}) };
+  for (const chave of ["download", "upload", "latencia"]) {
+    if (!metricaRedeValida(metricas[chave])) {
+      const ultimaValida = ultimaMetricaRedeValida(leituras, chave);
+      if (ultimaValida) metricas[chave] = ultimaValida;
+      else delete metricas[chave];
+    }
+  }
+
+  return { ...componentes, rede: { ...rede, metricas } };
+}
+
 function limitePositivo(valor) {
   if (valor === null || valor === undefined || valor === "") return null;
   const numero = Number(valor);
@@ -43,8 +70,8 @@ function criarMetricaReal(componente, serie, limitesPadrao) {
       { grupo: "disco", chave: "uso", nome: "Uso de disco", percentual: true, unidade: "%", cor: CORES.verde },
     ],
     rede: [
-      { grupo: "rede", chave: "download", nome: "Download", percentual: false, unidade: "Mbps", cor: CORES.verde },
-      { grupo: "rede", chave: "upload", nome: "Upload", percentual: false, unidade: "Mbps", cor: CORES.cinza },
+      { grupo: "rede", chave: "download", nome: "Download", percentual: false, unidade: "Mbps", cor: CORES.verde, spanGaps: true },
+      { grupo: "rede", chave: "upload", nome: "Upload", percentual: false, unidade: "Mbps", cor: CORES.cinza, spanGaps: true },
     ],
   };
   const linhas = definicoes[componente]
@@ -78,6 +105,10 @@ function criarMetricaReal(componente, serie, limitesPadrao) {
   const unidade = principal.unidade;
   const atualSnapshot = leituras.at(-1);
   const atualComponentes = atualSnapshot?.componentes ?? {};
+  const detalhes =
+    componente === "rede"
+      ? preservarUltimasMetricasRede(leituras, atualComponentes)
+      : atualComponentes;
   const atual =
     componente === "rede"
       ? linhas
@@ -91,7 +122,7 @@ function criarMetricaReal(componente, serie, limitesPadrao) {
   return {
     labels: leituras.map((leitura) => leitura.timestamp?.slice(11, 19) || leitura.timestamp),
     linhas,
-    detalhes: atualComponentes,
+    detalhes,
     atual,
     descricao:
       componente === "disco"
